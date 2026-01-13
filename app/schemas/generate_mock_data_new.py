@@ -457,6 +457,7 @@ class MockDataGenerator:
         notifications_data = [
             # Notifications for Lucky's medicines
             {
+                "pet_id": self.pet_ids[0],
                 "user_id": self.user_ids[0],
                 "medicine_id": self.medicine_ids[0],
                 "title": "Time to give Amoxicillin",
@@ -469,6 +470,7 @@ class MockDataGenerator:
                 "updated_at": datetime.utcnow()
             },
             {
+                "pet_id": self.pet_ids[0],
                 "user_id": self.user_ids[0],
                 "medicine_id": self.medicine_ids[1],
                 "title": "Daily Glucosamine reminder",
@@ -482,6 +484,7 @@ class MockDataGenerator:
             },
             # Notification for Momo's medicine
             {
+                "pet_id": self.pet_ids[1],
                 "user_id": self.user_ids[1],
                 "medicine_id": self.medicine_ids[2],
                 "title": "Prednisolone - Morning dose",
@@ -495,6 +498,7 @@ class MockDataGenerator:
             },
             # Notification for Cookie's medicine (past notification - already taken)
             {
+                "pet_id": self.pet_ids[2],
                 "user_id": self.user_ids[2],
                 "medicine_id": self.medicine_ids[4],
                 "title": "Morning Multivitamin",
