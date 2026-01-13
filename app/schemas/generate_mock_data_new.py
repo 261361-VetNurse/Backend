@@ -526,7 +526,7 @@ class MockDataGenerator:
                 "user_id": str(self.user_ids[0]),
                 "key_id": f"key_{random.randint(10000, 99999)}",
                 "token_type": "Bearer",
-                "expires_in": datetime.utcnow() + timedelta(hours=24),
+                "expires_in": datetime.utcnow() + timedelta(days=30),
                 "created_at": datetime.utcnow() - timedelta(hours=1),
                 "updated_at": datetime.utcnow() - timedelta(hours=1)
             },
@@ -535,7 +535,7 @@ class MockDataGenerator:
                 "user_id": str(self.user_ids[1]),
                 "key_id": f"key_{random.randint(10000, 99999)}",
                 "token_type": "Bearer",
-                "expires_in": datetime.utcnow() + timedelta(hours=24),
+                "expires_in": datetime.utcnow() + timedelta(days=30),
                 "created_at": datetime.utcnow() - timedelta(hours=2),
                 "updated_at": datetime.utcnow() - timedelta(hours=2)
             },
@@ -544,7 +544,7 @@ class MockDataGenerator:
                 "user_id": str(self.user_ids[2]),
                 "key_id": f"key_{random.randint(10000, 99999)}",
                 "token_type": "Bearer",
-                "expires_in": datetime.utcnow() + timedelta(hours=24),
+                "expires_in": datetime.utcnow() + timedelta(days=30),
                 "created_at": datetime.utcnow() - timedelta(minutes=30),
                 "updated_at": datetime.utcnow() - timedelta(minutes=30)
             }
