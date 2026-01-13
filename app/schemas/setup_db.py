@@ -1,20 +1,20 @@
-import pymongo
-from pymongo import MongoClient
+import asyncio
+import os
+from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import CollectionInvalid
 
-# Database Connection Configuration
-# Ensure your MongoDB is running on this URI
-MONGO_URI = "mongodb://localhost:27017/"
+# Database connection configuration (should match your .env file)
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 DB_NAME = "pet_medic_db"
 
-def setup_database():
+async def setup_database():
     try:
-        # connect to MongoDB
-        client = MongoClient(MONGO_URI)
+        # 1. Connect to MongoDB using Async
+        client = AsyncIOMotorClient(MONGO_URI)
         db = client[DB_NAME]
-        print(f"Connected to MongoDB: {DB_NAME}")
+        print(f"Connected to MongoDB: {DB_NAME} (Async)")
 
-        # Define Validation Schemas
+        # 2. Define schemas (field names and types have been updated)
         collections_schemas = {
             "USERS": {
                 "$jsonSchema": {
@@ -55,55 +55,55 @@ def setup_database():
                     "title": "PETS",
                     "required": ["user_id", "name"],
                     "properties": {
-                        "user_id": {"bsonType": "objectId"}, 
+                        "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
                         "name": {"bsonType": "string"},
                         "species": {"bsonType": "string"},
                         "breed": {"bsonType": "string"},
                         "color": {"bsonType": "string"},
                         "gender": {"bsonType": "string"},
-                        "birth_date": {"bsonType": "date"}, 
-                        "weight_kg": {"bsonType": "double"}, 
+                        "birth_date": {"bsonType": "date"},   # Fixed: string -> date
+                        "weight_kg": {"bsonType": "double"},  # Fixed: string -> double
                         "allergies": {"bsonType": "array", "items": {"bsonType": "string"}},
                         "infecund": {"bsonType": "bool"},
                         "profile_image": {"bsonType": "string"},
-                        "created_at": {"bsonType": "date"},
-                        "updated_at": {"bsonType": "date"}, 
+                        "created_at": {"bsonType": "date"},   # Fixed: timestamp -> date
+                        "updated_at": {"bsonType": "date"},
                     }
                 }
             },
-            "DRUGS": { 
+            "MEDICINES": {  # Renamed from DRUGS/DRUGES
                 "$jsonSchema": {
                     "bsonType": "object",
-                    "title": "DRUGS",
+                    "title": "MEDICINES",
                     "required": ["user_id", "pet_id", "name"],
                     "properties": {
-                        "user_id": {"bsonType": "objectId"}, 
-                        "pet_id": {"bsonType": "objectId"},  
+                        "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
+                        "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
                         "name": {"bsonType": "string"},
                         "notes": {"bsonType": "array", "items": {"bsonType": "string"}},
                         "properties": {"bsonType": "string"},
                         "image_urls": {"bsonType": "array", "items": {"bsonType": "string"}},
-                        "dosage": {"bsonType": "string"}, 
-                        "frequency": {"bsonType": "string"}, 
-                        "status": {"bsonType": "string"},    
+                        "dosage": {"bsonType": "string"},
+                        "frequency": {"bsonType": "string"},  # Pending Enum
+                        "status": {"bsonType": "string"},     # Pending Enum
                         "reminder_time": {"bsonType": "array", "items": {"bsonType": "date"}},
                         "start_date": {"bsonType": "date"},
                         "end_date": {"bsonType": "date"},
                         "created_at": {"bsonType": "date"},
-                        "updated_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},   # Fixed: update_at -> updated_at
                     }
                 }
             },
-            "PETS_RECORDS": { 
+            "PETS_RECORDS": {
                 "$jsonSchema": {
                     "bsonType": "object",
                     "title": "PETS_RECORDS",
                     "properties": {
-                        "pet_id": {"bsonType": "objectId"}, 
+                        "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
                         "note": {"bsonType": "string"},
                         "images": {"bsonType": "array", "items": {"bsonType": "string"}},
                         "created_at": {"bsonType": "date"},
-                        "updated_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},   # Fixed: update_at -> updated_at
                     }
                 }
             },
@@ -112,11 +112,11 @@ def setup_database():
                     "bsonType": "object",
                     "title": "APPOINTMENTS",
                     "properties": {
-                        "pet_id": {"bsonType": "objectId"}, 
-                        "user_id": {"bsonType": "objectId"}, 
+                        "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
+                        "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
                         "note": {"bsonType": "string"},
                         "appointment_date": {"bsonType": "date"},
-                        "status": {"bsonType": "string"}, 
+                        "status": {"bsonType": "string"},     # Pending Enum
                         "created_at": {"bsonType": "date"},
                         "updated_at": {"bsonType": "date"},
                     }
@@ -128,31 +128,31 @@ def setup_database():
                     "title": "APPOINTMENTS_NOTIFICATION",
                     "required": ["pet_id", "user_id", "appointment_id"],
                     "properties": {
-                        "pet_id": {"bsonType": "objectId"}, 
-                        "user_id": {"bsonType": "objectId"}, 
+                        "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
+                        "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
                         "appointment_id": {"bsonType": "objectId"},
                         "title": {"bsonType": "string"},
                         "notification_at": {"bsonType": "date"},
-                        "sending_status": {"bsonType": "string"}, 
-                        "status": {"bsonType": "string"}, 
+                        "sending_status": {"bsonType": "string"},
+                        "status": {"bsonType": "string"},
                         "sending_count": {"bsonType": "int"},
                         "created_at": {"bsonType": "date"},
                         "updated_at": {"bsonType": "date"},
                     }
                 }
             },
-            "DRUGS_NOTIFICATION": { 
+            "MEDICINES_NOTIFICATION": {
                 "$jsonSchema": {
                     "bsonType": "object",
-                    "title": "DRUGS_NOTIFICATION",
-                    "required": ["drug_id"],
+                    "title": "MEDICINES_NOTIFICATION",
+                    "required": ["medicine_id"],
                     "properties": {
-                        "user_id": {"bsonType": "objectId"}, 
-                        "drug_id": {"bsonType": "objectId"}, 
+                        "user_id": {"bsonType": "objectId"},     # Fixed: users_id -> user_id
+                        "medicine_id": {"bsonType": "objectId"}, # Fixed: medicines_id -> medicine_id
                         "title": {"bsonType": "string"},
                         "notification_at": {"bsonType": "date"},
-                        "sending_status": {"bsonType": "string"}, 
-                        "status": {"bsonType": "string"}, 
+                        "sending_status": {"bsonType": "string"},
+                        "status": {"bsonType": "string"},
                         "sending_count": {"bsonType": "int"},
                         "istaken": {"bsonType": "bool"},
                         "created_at": {"bsonType": "date"},
@@ -160,38 +160,46 @@ def setup_database():
                     }
                 }
             },
-             "JWT": {
+            "JWT": {
                 "$jsonSchema": {
                     "bsonType": "object",
                     "title": "JWT",
                     "properties": {
                         "access_token": {"bsonType": "string"},
-                        "user_id": {"bsonType": "string"}, 
+                        "user_id": {"bsonType": "string"},    # Keeping string for flexibility
                         "key_id": {"bsonType": "string"},
                         "token_type": {"bsonType": "string"},
                         "expires_in": {"bsonType": "date"},
                         "created_at": {"bsonType": "date"},
-                        "updated_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},   # Fixed: update_at -> updated_at
                     }
                 }
             },
         }
 
-        # Iterate to create collections or update validators
+        # 3. Drop existing collections and data (Clean Start)
+        print("\n🗑️  Dropping existing collections...")
+        existing_collections = await db.list_collection_names()
+        
+        for name in collections_schemas.keys():
+            if name in existing_collections:
+                await db[name].drop()
+                print(f"  - Dropped collection: {name}")
+        print("✓ Old collections cleared\n")
+        
+        # 4. Create collections with validators
+        print("Creating collections with validators...")
         for name, schema in collections_schemas.items():
-            if name not in db.list_collection_names():
-                # Create new collection with validator
-                db.create_collection(name, validator=schema)
-                print(f"Created collection: {name}")
-            else:
-                # Update existing collection validator
-                db.command("collMod", name, validator=schema)
-                print(f"Updated validator for: {name}")
+            await db.create_collection(name, validator=schema)
+            print(f"[OK] Created collection: {name}")
 
         print("\nDatabase setup completed successfully!")
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"\n[ERROR] An error occurred: {e}")
+    finally:
+        client.close()
 
 if __name__ == "__main__":
-    setup_database()
+    # Run async function
+    asyncio.run(setup_database())
