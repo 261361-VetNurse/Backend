@@ -1,15 +1,40 @@
-from typing import Union
+"""
+FastAPI Application Main Entry Point
+"""
 
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+from app.config import settings
+from app.database import connect_to_mongo, close_mongo_connection
+from app.routers import pet_owners, pet_owners_home_page
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events"""
+    # Startup
+    await connect_to_mongo()
+    yield
+    # Shutdown
+    await close_mongo_connection()
+
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    lifespan=lifespan
+)
+
+app.include_router(pet_owners.router)
+app.include_router(pet_owners_home_page.router)
 
 
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+async def root():
+    """หน้าแรก"""
+    return {
+        "message": "Welcome to Backend API",
+        "version": settings.APP_VERSION,
+        "docs": "/docs"
+    }

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     
     # Database
     MONGODB_URL: str = "mongodb://localhost:27017"
-    MONGODB_DB_NAME: str = "backend_db"
+    MONGODB_DB_NAME: str = "pet_medic_db"
     
     class Config:
         env_file = ".env"

@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
-from app.routers import items
+from app.routers import pet_owners, pet_owners_home_page
 
 
 @asynccontextmanager
@@ -26,7 +26,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(items.router)
+app.include_router(pet_owners.router)
+app.include_router(pet_owners_home_page.router)
 
 
 @app.get("/")
