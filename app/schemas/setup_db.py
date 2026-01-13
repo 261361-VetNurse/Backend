@@ -145,8 +145,9 @@ async def setup_database():
                 "$jsonSchema": {
                     "bsonType": "object",
                     "title": "MEDICINES_NOTIFICATION",
-                    "required": ["medicine_id"],
+                    "required": ["pet_id", "user_id", "medicine_id"],
                     "properties": {
+                        "pet_id": {"bsonType": "objectId"},
                         "user_id": {"bsonType": "objectId"},     # Fixed: users_id -> user_id
                         "medicine_id": {"bsonType": "objectId"}, # Fixed: medicines_id -> medicine_id
                         "title": {"bsonType": "string"},
