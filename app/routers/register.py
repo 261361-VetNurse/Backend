@@ -20,5 +20,5 @@ async def register_pet_endpoint(
     data: PetRegister, 
     current_user: dict = Depends(get_current_user)
 ):
-    pet_id = await user_service.register_new_pet(str(current_user["_id"]), data)
+    pet_id = await user_service.register_new_pet(current_user["_id"], data)
     return {"message": "Pet registered successfully", "pet_id": pet_id}

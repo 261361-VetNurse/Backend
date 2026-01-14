@@ -29,13 +29,18 @@ async def get_home_dashboard(current_user: dict = Depends(get_current_user)):
     return await user_service.get_dashboard_data(str(current_user["_id"]))
 
 @router.get("/{pet_id}")
-async def get_pet_detail(pet_id: str, current_user: dict = Depends(get_current_user)):
-    pet = await user_service.get_pet_by_id(pet_id)
+async def get_pet_detail(pet_id: int, current_user: dict = Depends(get_current_user)): 
+    pet = await user_service.get_pet_by_id(str(pet_id)) 
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet not found")
     return pet
 
 @router.patch("/{pet_id}")
-async def update_pet(pet_id: str, data: PetUpdateSchema, current_user: dict = Depends(get_current_user)):
-    return await user_service.update_pet_info(pet_id, data)
+async def update_pet(pet_id: int, data: PetUpdateSchema, current_user: dict = Depends(get_current_user)):
+    success = await user_service.update_pet_info(str(pet_id), data)
+    if not success:
+        raise HTTPException(status_code=404, detail="Pet not found or no changes made")
+    return {"message": "Pet info updated"}
 
 # เพิ่มนัดหมายใหม่ให้สัตว์เลี้ยง: POST /v1/pets/{pet_id}/appointments
 @router.post("/{pet_id}/appointments")
@@ -69,12 +74,9 @@ async def add_pet_medication(
 
 # API ดึงประวัติการใช้ยา 
 @router.get("/{pet_id}/medications")
-async def get_pet_medications(
-    pet_id: str, 
-    current_user: dict = Depends(get_current_user)
-):
-    meds = await user_service.get_medications_by_pet(pet_id)
-    return meds
+async def get_pet_medications(pet_id: int, current_user: dict = Depends(get_current_user)):
+    return await user_service.get_medications_by_pet(str(pet_id))
+
 
 # API สำหรับดึงประวัติการรักษาทั้งหมดของสัตว์เลี้ยง
 @router.get("/{pet_id}/medical-history")
@@ -82,19 +84,21 @@ async def get_pet_medical_history(
     pet_id: str, 
     current_user: dict = Depends(get_current_user)
 ):
-
-    history = await user_service.get_pet_medical_history(pet_id)
-    return history
+    return await user_service.get_pet_medical_history(str(pet_id))
 
 # แก้ไขสถานะยา 
 @router.patch("/medications/{med_id}/status")
 async def toggle_medication_status(
-    med_id: str, 
+    med_id: int, 
     status: str, 
     note: str = None, 
     current_user: dict = Depends(get_current_user)
 ):
-    success = await user_service.toggle_medication_status(med_id, status, note)
+    # ตรวจสอบ status 
+    if status not in ["active", "stop"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+        
+    success = await user_service.toggle_medication_status(str(med_id), status, note)
     if not success:
         raise HTTPException(status_code=404, detail="Medication not found")
     return {"message": f"Medication status updated to {status}"}
@@ -117,8 +121,8 @@ async def delete_medication(med_id: str, current_user: dict = Depends(get_curren
 
 # ลบสัตว์เลี้ยง
 @router.delete("/{pet_id}")
-async def delete_pet(pet_id: str, current_user: dict = Depends(get_current_user)):
-    success = await user_service.delete_pet(pet_id)
+async def delete_pet(pet_id: int, current_user: dict = Depends(get_current_user)):
+    success = await user_service.delete_pet(str(pet_id))
     if not success:
         raise HTTPException(status_code=404, detail="Pet not found")
     return {"message": "Pet deleted successfully"}

@@ -3,8 +3,6 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.config import settings
 from app.database import get_database
-from bson import ObjectId
-from bson.errors import InvalidId 
 
 security = HTTPBearer()
 
@@ -25,10 +23,9 @@ async def get_current_user(
             raise HTTPException(status_code=401, detail="User ID not found in token")
 
         try:
-            user = await db["users"].find_one({"_id": ObjectId(user_id)})
-        except InvalidId:
-    
-            raise HTTPException(status_code=404, detail="Invalid User ID format")
+            user = await db["users"].find_one({"_id": int(user_id)})
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Invalid User ID format in token")
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found in database")
