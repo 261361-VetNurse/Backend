@@ -58,8 +58,8 @@ class AppointmentService:
         appointment_result = await db.APPOINTMENTS.insert_one(appointment_doc)
         appointment_id = appointment_result.inserted_id
         
-        # Generate notification (2 days before appointment)
-        notification_date = appointment_date - timedelta(days=2)
+        # Generate notification immediately
+        notification_date = datetime.utcnow()
         
         notification_doc = {
             "pet_id": pet_id,
@@ -144,7 +144,7 @@ class AppointmentService:
                 # Update notification_at if date changed
                 if date_changed:
                     new_date = update_data["appointment_date"]
-                    new_notification_date = new_date - timedelta(days=2)
+                    new_notification_date = datetime.utcnow()
                     notification_updates["notification_at"] = new_notification_date
                     result["notification_updated"] = True
                 

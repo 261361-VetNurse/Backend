@@ -42,7 +42,7 @@
   note?: string           // Optional - Update notes
 }
 // Note: At least one field must be provided
-// Changing appointment_date will automatically update notification (2 days before new date)
+// Changing appointment_date will automatically update notification immediately
 ```
 
 **PATCH /v1/appointments/{appointment_id}/cancel - Cancel Appointment**
