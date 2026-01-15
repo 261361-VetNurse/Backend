@@ -208,6 +208,183 @@ When updating `status` to `"STOP"`:
 ### Dashboard API (`/v1/dashboard`)
 - `GET /v1/dashboard/home` - Get dashboard data
 
+---
+
+## 📝 API Usage Examples
+
+### Example 1: Get All Notifications (No Filter)
+```bash
+GET /v1/medications
+Headers: 
+  access_token: mock_token_user_1_long_live
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "67890abcdef",
+      "title": "Time to give Amoxycillin to Lucky",
+      "notification_at": "2026-01-16T08:00:00",
+      "istaken": false,
+      "pet_id": "12345abcdef"
+    },
+    {
+      "_id": "67890abcdeg",
+      "title": "Time to give Vitamin Gel to Mochi",
+      "notification_at": "2026-01-16T10:00:00",
+      "istaken": false,
+      "pet_id": "12345abcdeg"
+    }
+  ]
+}
+```
+
+### Example 2: Get Notifications by Pet ID
+```bash
+GET /v1/medications?pets_id=12345abcdef
+Headers: 
+  access_token: mock_token_user_1_long_live
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "67890abcdef",
+      "title": "Time to give Amoxycillin to Lucky",
+      "notification_at": "2026-01-16T08:00:00",
+      "istaken": false,
+      "pet_id": "12345abcdef"
+    }
+  ]
+}
+```
+
+### Example 3: Get Notifications by Date
+```bash
+GET /v1/medications?date=2026-01-17
+Headers: 
+  access_token: mock_token_user_1_long_live
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "67890abcdeh",
+      "title": "Time to give Amoxycillin to Lucky",
+      "notification_at": "2026-01-17T08:00:00",
+      "istaken": false,
+      "pet_id": "12345abcdef"
+    }
+  ]
+}
+```
+
+### Example 4: Get Notifications by Pet ID and Date
+```bash
+GET /v1/medications?pets_id=12345abcdef&date=2026-01-17
+Headers: 
+  access_token: mock_token_user_1_long_live
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "67890abcdeh",
+      "title": "Time to give Amoxycillin to Lucky",
+      "notification_at": "2026-01-17T08:00:00",
+      "istaken": false,
+      "pet_id": "12345abcdef"
+    }
+  ]
+}
+```
+
+### Example 5: Create New Medicine
+```bash
+POST /v1/medications/medicine
+Headers: 
+  access_token: mock_token_user_1_long_live
+  Content-Type: application/json
+
+Body:
+{
+  "pet_id": "12345abcdef",
+  "name": "Antibiotics",
+  "dosage": "2 tablets",
+  "frequency": "-1",
+  "status": "TAKE",
+  "reminder_time": ["2026-01-16T09:00:00", "2026-01-16T21:00:00"],
+  "start_date": "2026-01-16T00:00:00",
+  "end_date": "2026-01-23T00:00:00"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Medicine created successfully",
+  "data": {
+    "medicine_id": "abc123def456",
+    "notifications_created": 14
+  }
+}
+```
+
+### Example 6: Update Medicine (Change Schedule)
+```bash
+PATCH /v1/medications/{notification_id}/{medicine_id}/edit
+Headers: 
+  access_token: mock_token_user_1_long_live
+  Content-Type: application/json
+
+Body:
+{
+  "frequency": "0,2,4",
+  "reminder_time": ["2026-01-16T10:00:00"]
+}
+
+Response:
+{
+  "success": true,
+  "message": "Medicine updated successfully",
+  "data": {
+    "medicine_id": "abc123def456",
+    "notifications_deleted": 10,
+    "notifications_created": 6,
+    "note_added": false
+  }
+}
+```
+
+### Example 7: Stop Medicine
+```bash
+PATCH /v1/medications/{notification_id}/{medicine_id}/edit
+Headers: 
+  access_token: mock_token_user_1_long_live
+  Content-Type: application/json
+
+Body:
+{
+  "status": "STOP",
+  "note": "Pet recovered, no longer needs medication"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Medicine updated successfully",
+  "data": {
+    "medicine_id": "abc123def456",
+    "notifications_deleted": 8,
+    "notifications_created": 0,
+    "note_added": true
+  }
+}
+```
+
 📖 **API Documentation:** http://localhost:8000/docs (Swagger UI)
 
 ---
