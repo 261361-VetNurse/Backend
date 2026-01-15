@@ -7,13 +7,13 @@
 
 | Method | Endpoint | Description | Authentication | Ownership Verification |
 |--------|----------|-------------|----------------|------------------------|
-| **GET** | `/v1/appointments` | Get all appointments for current user | ✅ Required | User → Pets → Appointments |
-| **GET** | `/v1/appointments?status={status}` | Filter appointments by status | ✅ Required | User → Pets → Appointments |
-| **GET** | `/v1/appointments/{appointment_id}` | Get appointment details | ✅ Required | User → Pet → Appointment |
-| **POST** | `/v1/appointments` | Create new appointment | ✅ Required | Verify pet ownership |
-| **PATCH** | `/v1/appointments/{appointment_id}/edit` | Update appointment | ✅ Required | User → Pet → Appointment |
-| **PATCH** | `/v1/appointments/{appointment_id}/cancel` | Cancel appointment | ✅ Required | User → Pet → Appointment |
-| **DELETE** | `/v1/appointments/{appointment_id}` | Delete appointment | ✅ Required | User → Pet → Appointment |
+| **GET** | `/v1/appointments` | Get all appointments for current user |
+| **GET** | `/v1/appointments?status={status}` | Filter appointments by status  |
+| **GET** | `/v1/appointments/{appointment_id}` | Get appointment details |
+| **POST** | `/v1/appointments` | Create new appointment|
+| **PATCH** | `/v1/appointments/{appointment_id}/edit` | Update appointment|
+| **PATCH** | `/v1/appointments/{appointment_id}/cancel` | Cancel appointment  |
+| **DELETE** | `/v1/appointments/{appointment_id}` | Delete appointment  |
 
 #### Status Values
 - `Upcoming` - Scheduled appointment
