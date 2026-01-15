@@ -6,8 +6,9 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.database import connect_to_mongo, close_mongo_connection
-from app.routers import dashboard_home
+from app.database import connect_to_mongo, close_mongo_connection, get_database
+from app.routers import dashboard_home, medications
+from app.services.notification_scheduler import notification_scheduler
 
 
 @asynccontextmanager
@@ -15,8 +16,16 @@ async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
     await connect_to_mongo()
+    
+    # Initialize and start notification scheduler
+    db = get_database()
+    notification_scheduler.set_database(db)
+    notification_scheduler.start()
+    
     yield
+    
     # Shutdown
+    notification_scheduler.shutdown()
     await close_mongo_connection()
 
 
@@ -27,6 +36,7 @@ app = FastAPI(
 )
 
 app.include_router(dashboard_home.router)
+app.include_router(medications.router)
 
 
 @app.get("/")
