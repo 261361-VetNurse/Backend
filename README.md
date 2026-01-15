@@ -5,8 +5,8 @@
 
 ### Appointments API
 
-| Method | Endpoint | Description | Authentication | Ownership Verification |
-|--------|----------|-------------|----------------|------------------------|
+| Method | Endpoint | Description | 
+|--------|----------|-------------|
 | **GET** | `/v1/appointments` | Get all appointments for current user |
 | **GET** | `/v1/appointments?status={status}` | Filter appointments by status  |
 | **GET** | `/v1/appointments/{appointment_id}` | Get appointment details |
