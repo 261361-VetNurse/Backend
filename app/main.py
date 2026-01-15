@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
-from app.routers import items
+from app.routers.appointments import router as appointments_router
 
 
 @asynccontextmanager
@@ -26,7 +26,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(items.router)
+app.include_router(appointments_router)
 
 
 @app.get("/")
