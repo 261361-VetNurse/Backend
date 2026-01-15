@@ -115,6 +115,7 @@ async def setup_database():
                         "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
                         "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
                         "note": {"bsonType": "string"},
+                        "location": {"bsonType": "string"},
                         "appointment_date": {"bsonType": "date"},
                         "status": {"bsonType": "string"},     # Pending Enum
                         "created_at": {"bsonType": "date"},
