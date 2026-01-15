@@ -10,8 +10,8 @@ from app.database import get_database
 
 
 router = APIRouter(
-    prefix="/pet-owners/home-page",
-    tags=["Pet Owners - Home Page"]
+    prefix="/v1/dashboard/home",
+    tags=["Dashboard - Home"]
 )
 
 
@@ -32,7 +32,8 @@ async def get_home_page_dashboard(
     
     Returns:
     - fname: User's first name
-    - line_profile: Line profile URL (TODO: not implemented yet)
+    - lname: User's last name
+    - pets: List of all user's pets with pet_id and profile_image
     - medicines_notifications: Today's medicine notifications with pet and medicine details
     - appointments: Current/future appointments with pet details
     """
@@ -63,7 +64,17 @@ async def get_home_page_dashboard(
                 detail="User not found"
             )
         
-        # 3. Get today's medicine notifications (only today)
+        # 3. Get all pets of the user
+        pets = await db.PETS.find({"user_id": user_id}).to_list(length=100)
+        pets_data = [
+            {
+                "pet_id": str(pet["_id"]),
+                "profile_image": pet.get("profile_image", "")
+            }
+            for pet in pets
+        ]
+        
+        # 4. Get today's medicine notifications (only today)
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
         
@@ -102,7 +113,7 @@ async def get_home_page_dashboard(
                 "istaken": notif.get("istaken", False)
             })
         
-        # 4. Get current/future appointments (not past)
+        # 5. Get current/future appointments (not past)
         current_time = datetime.utcnow()
         
         appointments = await db.APPOINTMENTS.find({
@@ -135,12 +146,13 @@ async def get_home_page_dashboard(
                 "note": appt.get("note", "")
             })
         
-        # 5. Return dashboard data
+        # 6. Return dashboard data
         return {
             "success": True,
             "data": {
                 "fname": user["fname"],
                 "lname": user.get("lname", ""),
+                "pets": pets_data,
                 # "line_profile": None,  # TODO: Implement LINE profile integration
                 "medicines_notifications": notifications_data,
                 "appointments": appointments_data

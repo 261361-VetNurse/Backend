@@ -1,6 +1,6 @@
 """
 API Routers
 """
-from . import pet_owners, pet_owners_home_page
+from . import dashboard_home, medications
 
-__all__ = ["pet_owners", "pet_owners_home_page"]
+__all__ = ["dashboard_home", "medications"]
