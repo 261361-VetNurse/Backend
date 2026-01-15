@@ -5,20 +5,57 @@
 
 ### Appointments API
 
-| Method | Endpoint | Description | Authentication | Ownership Verification |
-|--------|----------|-------------|----------------|------------------------|
-| **GET** | `/v1/appointments` | Get all appointments for current user | ✅ Required | User → Pets → Appointments |
-| **GET** | `/v1/appointments?status={status}` | Filter appointments by status | ✅ Required | User → Pets → Appointments |
-| **GET** | `/v1/appointments/{appointment_id}` | Get appointment details | ✅ Required | User → Pet → Appointment |
-| **POST** | `/v1/appointments` | Create new appointment | ✅ Required | Verify pet ownership |
-| **PATCH** | `/v1/appointments/{appointment_id}/edit` | Update appointment | ✅ Required | User → Pet → Appointment |
-| **PATCH** | `/v1/appointments/{appointment_id}/cancel` | Cancel appointment | ✅ Required | User → Pet → Appointment |
-| **DELETE** | `/v1/appointments/{appointment_id}` | Delete appointment | ✅ Required | User → Pet → Appointment |
+| Method | Endpoint | Description | 
+|--------|----------|-------------|
+| **GET** | `/v1/appointments` | Get all appointments for current user |
+| **GET** | `/v1/appointments?status={status}` | Filter appointments by status  |
+| **GET** | `/v1/appointments/{appointment_id}` | Get appointment details |
+| **POST** | `/v1/appointments` | Create new appointment|
+| **PATCH** | `/v1/appointments/{appointment_id}/edit` | Update appointment|
+| **PATCH** | `/v1/appointments/{appointment_id}/cancel` | Cancel appointment  |
+| **DELETE** | `/v1/appointments/{appointment_id}` | Delete appointment  |
 
 #### Status Values
 - `Upcoming` - Scheduled appointment
 - `Completed` - Finished appointment
 - `Canceled` - Cancelled appointment
+
+#### Request Body Schemas
+
+**POST /v1/appointments - Create Appointment**
+```typescript
+{
+  pet_id: string          // Required - Pet ObjectId
+  location: string        // Required - Appointment location
+  appointment_date: string // Required - ISO 8601 datetime (e.g., "2026-02-15T10:00:00")
+  status: string          // Required - "Upcoming" | "Completed" | "Canceled"
+  note?: string           // Optional - Additional notes
+}
+```
+
+**PATCH /v1/appointments/{appointment_id}/edit - Update Appointment**
+```typescript
+{
+  location?: string        // Optional - Update location
+  appointment_date?: string // Optional - Update date (ISO 8601)
+  status?: string          // Optional - Update status
+  note?: string           // Optional - Update notes
+}
+// Note: At least one field must be provided
+// Changing appointment_date will automatically update notification (2 days before new date)
+```
+
+**PATCH /v1/appointments/{appointment_id}/cancel - Cancel Appointment**
+```
+No body required
+// Sets status to "Canceled" automatically
+```
+
+**DELETE /v1/appointments/{appointment_id} - Delete Appointment**
+```
+No body required
+// Cascade deletes: Removes appointment and associated notifications
+```
 
 #### Request Examples
 
@@ -68,3 +105,4 @@ Body: {
 }
 ```
 
+ 
