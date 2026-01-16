@@ -3,7 +3,8 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
-from app.routers import  auth , register, pets 
+from app.routers import  auth , register, pets , dashboard_home
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,10 +20,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-
+app.include_router(dashboard_home.router)
 app.include_router(auth.router)
 app.include_router(register.router, prefix="/v1/register")
-app.include_router(pets.router)    
 # app.include_router(items.router, prefix="/items", tags=["Items"])
 
 @app.get("/")

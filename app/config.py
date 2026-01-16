@@ -10,11 +10,12 @@ class Settings(BaseSettings):
     
     # Database
     MONGODB_URL: str = "mongodb://localhost:27017"
-    MONGODB_DB_NAME: str = "backend_db"
+    # MONGODB_DB_NAME: str = "backend_db"
 
     # --- LINE Messaging API (JWT) ---
     CHANNEL_ID: str
     KEY_ID: str
+    MONGODB_DB_NAME: str = "pet_medic_db"
     
     # --- LINE Login ---
     LOGIN_CLIENT_ID: str

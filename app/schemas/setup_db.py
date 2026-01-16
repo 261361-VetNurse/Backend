@@ -1,199 +1,206 @@
 import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo import ASCENDING, DESCENDING
+from pymongo.errors import CollectionInvalid
 
-# ==========================================
-# 1. CONFIGURATION
-# ==========================================
-MONGO_URI = "mongodb://localhost:27017"
-DB_NAME = "pets_medic_db"
+# Database connection configuration (should match your .env file)
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+DB_NAME = "pet_medic_db"
 
-# ==========================================
-# 2. DEFINE SCHEMAS (VALIDATORS)
-# ==========================================
-schemas = {
-    "USERS": {
-        "$jsonSchema": {
-            "bsonType": "object",
-            "required": ["line_id", "fname", "lname", "phone", "create_date"],
-            "properties": {
-                "line_id": {"bsonType": "string"},
-                "fname": {"bsonType": "string"},
-                "lname": {"bsonType": "string"},
-                "gender": {"bsonType": "string", "enum": ["Male", "Female", "Other"]},
-                "phone": {"bsonType": "string"},
-                "email": {"bsonType": "string"},
-                "address": {"bsonType": "object"},
-                "create_date": {"bsonType": "date"},
-                "update_date": {"bsonType": "date"}
-            }
-        }
-    },
-    "PETS": {
-        "$jsonSchema": {
-            "bsonType": "object",
-            "required": ["user_id", "name", "species", "birth_date", "sex", "create_date"],
-            "properties": {
-                "user_id": {"bsonType": "objectId"},
-                "image_url": {"bsonType": "string"},
-                "name": {"bsonType": "string"},
-                "species": {"bsonType": "string"},
-                "breed": {"bsonType": "string"},
-                "birth_date": {"bsonType": "date"},
-                "sex": {"bsonType": "string", "enum": ["Male", "Female", "Unknown"]},
-                "color": {"bsonType": "string"},
-                "create_date": {"bsonType": "date"},
-                "update_date": {"bsonType": "date"}
-            }
-        }
-    },
-    "NOTES": {
-        "$jsonSchema": {
-            "bsonType": "object",
-            "required": ["pet_id", "user_id", "symptom", "create_date"],
-            "properties": {
-                "pet_id": {"bsonType": "objectId"},
-                "user_id": {"bsonType": "objectId"},
-                "image_urls": {"bsonType": "array", "items": {"bsonType": "string"}},
-                "symptom": {"bsonType": "string"},
-                "relapse_date": {"bsonType": "date"},
-                "create_date": {"bsonType": "date"},
-                "update_date": {"bsonType": "date"}
-            }
-        }
-    },
-    "APPOINTMENTS": {
-        "$jsonSchema": {
-            "bsonType": "object",
-            "required": ["pet_id", "user_id", "date", "status", "create_date"],
-            "properties": {
-                "pet_id": {"bsonType": "objectId"},
-                "user_id": {"bsonType": "objectId"},
-                "location": {"bsonType": "string"},
-                "date": {"bsonType": "date"},
-                "status": {"bsonType": "string", "enum": ["pending", "confirmed", "completed", "cancelled"]},
-                "note": {"bsonType": "string"},
-                "create_date": {"bsonType": "date"},
-                "update_date": {"bsonType": "date"}
-            }
-        }
-    },
-    "MEDICINES": {
-        "$jsonSchema": {
-            "bsonType": "object",
-            "required": ["pet_id", "drug_name", "dosage", "status", "next_dose_time"],
-            "properties": {
-                "pet_id": {"bsonType": "objectId"},
-                "drug_name": {"bsonType": "string"},
-                "dosage": {"bsonType": "string"},
-                "indication": {"bsonType": "string"},
-                "note": {"bsonType": "string"},
-                "frequency_config": {
-                    "bsonType": "object",
-                    "properties": {
-                        "type": {"bsonType": "string", "enum": ["interval", "specific_time"]},
-                        "interval_hours": {"bsonType": "int"},
-                        "time_slots": {"bsonType": "array", "items": {"bsonType": "string"}}
-                    }
-                },
-                "start_date": {"bsonType": "date"},
-                "end_date": {"bsonType": "date"},
-                "next_dose_time": {"bsonType": "date"},
-                "status": {"bsonType": "string", "enum": ["active", "completed", "cancelled"]},
-                "create_date": {"bsonType": "date"},
-                "update_date": {"bsonType": "date"}
-            }
-        }
-    },
-    "NOTIFICATIONS": {
-        "$jsonSchema": {
-            "bsonType": "object",
-            "required": ["user_id", "type", "title", "message", "is_read", "create_date"],
-            "properties": {
-                "user_id": {"bsonType": "objectId"},
-                "type": {"bsonType": "string", "enum": ["medicine", "appointment", "system"]},
-                "title": {"bsonType": "string"},
-                "message": {"bsonType": "string"},
-                "related_id": {"bsonType": "objectId"},
-                "is_read": {"bsonType": "bool"},
-                "create_date": {"bsonType": "date"}
-            }
-        }
-    },
-    "JWT": {
-        "$jsonSchema": {
-            "bsonType": "object",
-            "required": ["token", "user_id", "type", "expires_at"],
-            "properties": {
-                "token": {"bsonType": "string"},
-                "user_id": {"bsonType": "objectId"},
-                "type": {"bsonType": "string", "enum": ["access", "refresh"]},
-                "expires_at": {"bsonType": "date"},
-                "create_date": {"bsonType": "date"}
-            }
-        }
-    }
-}
-
-# ==========================================
-# 3. ASYNC INITIALIZATION FUNCTION
-# ==========================================
-async def init_db():
-    print(f"Connecting to MongoDB at {MONGO_URI}...")
-    client = AsyncIOMotorClient(MONGO_URI)
-    
-    #Drop Database (Clean Start)
-    print(f"Dropping database: {DB_NAME}...")
-    await client.drop_database(DB_NAME)
-    
-    db = client[DB_NAME]
-    print(f"Database '{DB_NAME}' created fresh.")
-
-    # --- Create Collections with Validators ---
-    print("Creating Collections & Validators...")
-    for coll_name, schema in schemas.items():
-        try:
-            await db.create_collection(coll_name, validator=schema)
-            print(f"   - Created: {coll_name}")
-        except Exception as e:
-            print(f"Error creating {coll_name}: {e}")
-
-    # --- Create Indexes ---
-    print("Creating Indexes...")
-    
-    # Users
-    await db.USERS.create_index([("line_id", ASCENDING)], unique=True)
-    await db.USERS.create_index([("email", ASCENDING)])
-    
-    # Pets
-    await db.PETS.create_index([("user_id", ASCENDING)])
-    
-    # Appointments
-    await db.APPOINTMENTS.create_index([("date", ASCENDING), ("status", ASCENDING)])
-    await db.APPOINTMENTS.create_index([("user_id", ASCENDING)])
-    
-    # Medicines (Notification Logic)
-    await db.MEDICINES.create_index([("status", ASCENDING), ("next_dose_time", ASCENDING)])
-    await db.MEDICINES.create_index([("pet_id", ASCENDING)])
-    
-    # Notifications (NEW)
-    # ค้นหาแจ้งเตือนของ User ที่ยังไม่อ่านได้เร็ว
-    await db.NOTIFICATIONS.create_index([("user_id", ASCENDING), ("is_read", ASCENDING)]) 
-    # เรียงลำดับเวลา (ใหม่ -> เก่า)
-    await db.NOTIFICATIONS.create_index([("create_date", DESCENDING)]) 
-    
-    # JWT (Auto Expire)
-    await db.JWT.create_index([("expires_at", ASCENDING)], expireAfterSeconds=0)
-
-    print("\n🎉 SUCCESS: Database initialization complete (Async)!")
-    client.close()
-
-# ==========================================
-# 4. RUN SCRIPT
-# ==========================================
-if __name__ == "__main__":
+async def setup_database():
     try:
-        asyncio.run(init_db())
+        # 1. Connect to MongoDB using Async
+        client = AsyncIOMotorClient(MONGO_URI)
+        db = client[DB_NAME]
+        print(f"Connected to MongoDB: {DB_NAME} (Async)")
+
+        # 2. Define schemas (field names and types have been updated)
+        collections_schemas = {
+            "USERS": {
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "title": "USERS",
+                    "required": ["fname", "lname"],
+                    "properties": {
+                        "fname": {"bsonType": "string"},
+                        "lname": {"bsonType": "string"},
+                        "contact": {
+                            "bsonType": "object",
+                            "properties": {
+                                "phone": {"bsonType": "string"},
+                                "line_id": {"bsonType": "string"},
+                                "email": {"bsonType": "string"},
+                            }
+                        },
+                        "address": {
+                            "bsonType": "object",
+                            "properties": {
+                                "address_line1": {"bsonType": "string"},
+                                "address_line2": {"bsonType": "string"},
+                                "subdistrict": {"bsonType": "string"},
+                                "district": {"bsonType": "string"},
+                                "province": {"bsonType": "string"},
+                                "postal_code": {"bsonType": "string"},
+                                "country": {"bsonType": "string"},
+                            }
+                        },
+                        "created_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},
+                    }
+                }
+            },
+            "PETS": {
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "title": "PETS",
+                    "required": ["user_id", "name"],
+                    "properties": {
+                        "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
+                        "name": {"bsonType": "string"},
+                        "species": {"bsonType": "string"},
+                        "breed": {"bsonType": "string"},
+                        "color": {"bsonType": "string"},
+                        "gender": {"bsonType": "string"},
+                        "birth_date": {"bsonType": "date"},   # Fixed: string -> date
+                        "weight_kg": {"bsonType": "double"},  # Fixed: string -> double
+                        "allergies": {"bsonType": "array", "items": {"bsonType": "string"}},
+                        "infecund": {"bsonType": "bool"},
+                        "profile_image": {"bsonType": "string"},
+                        "created_at": {"bsonType": "date"},   # Fixed: timestamp -> date
+                        "updated_at": {"bsonType": "date"},
+                    }
+                }
+            },
+            "MEDICINES": {  # Renamed from DRUGS/DRUGES
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "title": "MEDICINES",
+                    "required": ["user_id", "pet_id", "name"],
+                    "properties": {
+                        "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
+                        "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
+                        "name": {"bsonType": "string"},
+                        "notes": {"bsonType": "array", "items": {"bsonType": "string"}},
+                        "properties": {"bsonType": "string"},
+                        "image_urls": {"bsonType": "array", "items": {"bsonType": "string"}},
+                        "dosage": {"bsonType": "string"},
+                        "frequency": {"bsonType": "string"},  # Pending Enum
+                        "status": {"bsonType": "string"},     # Pending Enum
+                        "reminder_time": {"bsonType": "array", "items": {"bsonType": "date"}},
+                        "start_date": {"bsonType": "date"},
+                        "end_date": {"bsonType": "date"},
+                        "created_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},   # Fixed: update_at -> updated_at
+                    }
+                }
+            },
+            "PETS_RECORDS": {
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "title": "PETS_RECORDS",
+                    "properties": {
+                        "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
+                        "note": {"bsonType": "string"},
+                        "images": {"bsonType": "array", "items": {"bsonType": "string"}},
+                        "created_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},   # Fixed: update_at -> updated_at
+                    }
+                }
+            },
+            "APPOINTMENTS": {
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "title": "APPOINTMENTS",
+                    "properties": {
+                        "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
+                        "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
+                        "note": {"bsonType": "string"},
+                        "appointment_date": {"bsonType": "date"},
+                        "status": {"bsonType": "string"},     # Pending Enum
+                        "created_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},
+                    }
+                }
+            },
+            "APPOINTMENTS_NOTIFICATION": {
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "title": "APPOINTMENTS_NOTIFICATION",
+                    "required": ["pet_id", "user_id", "appointment_id"],
+                    "properties": {
+                        "pet_id": {"bsonType": "objectId"},   # Fixed: pets_id -> pet_id
+                        "user_id": {"bsonType": "objectId"},  # Fixed: users_id -> user_id
+                        "appointment_id": {"bsonType": "objectId"},
+                        "title": {"bsonType": "string"},
+                        "notification_at": {"bsonType": "date"},
+                        "sending_status": {"bsonType": "string"},
+                        "status": {"bsonType": "string"},
+                        "sending_count": {"bsonType": "int"},
+                        "created_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},
+                    }
+                }
+            },
+            "MEDICINES_NOTIFICATION": {
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "title": "MEDICINES_NOTIFICATION",
+                    "required": ["pet_id", "user_id", "medicine_id"],
+                    "properties": {
+                        "pet_id": {"bsonType": "objectId"},
+                        "user_id": {"bsonType": "objectId"},     # Fixed: users_id -> user_id
+                        "medicine_id": {"bsonType": "objectId"}, # Fixed: medicines_id -> medicine_id
+                        "title": {"bsonType": "string"},
+                        "notification_at": {"bsonType": "date"},
+                        "sending_status": {"bsonType": "string"},
+                        "status": {"bsonType": "string"},
+                        "sending_count": {"bsonType": "int"},
+                        "istaken": {"bsonType": "bool"},
+                        "created_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},
+                    }
+                }
+            },
+            "JWT": {
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "title": "JWT",
+                    "properties": {
+                        "access_token": {"bsonType": "string"},
+                        "user_id": {"bsonType": "string"},    # Keeping string for flexibility
+                        "key_id": {"bsonType": "string"},
+                        "token_type": {"bsonType": "string"},
+                        "expires_in": {"bsonType": "date"},
+                        "created_at": {"bsonType": "date"},
+                        "updated_at": {"bsonType": "date"},   # Fixed: update_at -> updated_at
+                    }
+                }
+            },
+        }
+
+        # 3. Drop existing collections and data (Clean Start)
+        print("\n🗑️  Dropping existing collections...")
+        existing_collections = await db.list_collection_names()
+        
+        for name in collections_schemas.keys():
+            if name in existing_collections:
+                await db[name].drop()
+                print(f"  - Dropped collection: {name}")
+        print("✓ Old collections cleared\n")
+        
+        # 4. Create collections with validators
+        print("Creating collections with validators...")
+        for name, schema in collections_schemas.items():
+            await db.create_collection(name, validator=schema)
+            print(f"[OK] Created collection: {name}")
+
+        print("\nDatabase setup completed successfully!")
+
     except Exception as e:
-        print(f"Fatal Error: {e}")
+        print(f"\n[ERROR] An error occurred: {e}")
+    finally:
+        client.close()
+
+if __name__ == "__main__":
+    # Run async function
+    asyncio.run(setup_database())
