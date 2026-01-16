@@ -29,6 +29,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.database import connect_to_mongo, close_mongo_connection
 from app.routers import dashboard_home, medications, medications
+from app.routers.appointments import router as appointments_router
 
 
 @asynccontextmanager
@@ -49,6 +50,7 @@ app = FastAPI(
 
 app.include_router(dashboard_home.router)
 app.include_router(medications.router)
+app.include_router(appointments_router)
 
 
 @app.get("/")
