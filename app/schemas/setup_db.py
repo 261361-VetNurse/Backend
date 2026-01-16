@@ -84,8 +84,14 @@ async def setup_database():
                         "properties": {"bsonType": "string"},
                         "image_urls": {"bsonType": "array", "items": {"bsonType": "string"}},
                         "dosage": {"bsonType": "string"},
-                        "frequency": {"bsonType": "string"},  # Pending Enum
-                        "status": {"bsonType": "string"},     # Pending Enum
+                        "frequency": {
+                            "bsonType": "string",
+                            "enum": ["-1", "0", "1", "2", "3", "4", "5", "6"]  # -1=Daily, 0=Mon, 6=Sun
+                        },
+                        "status": {
+                            "bsonType": "string",
+                            "enum": ["TAKE", "STOP"]  # TAKE=Active, STOP=Stopped
+                        },
                         "reminder_time": {"bsonType": "array", "items": {"bsonType": "date"}},
                         "start_date": {"bsonType": "date"},
                         "end_date": {"bsonType": "date"},
