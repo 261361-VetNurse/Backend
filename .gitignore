@@ -1,10 +1,11 @@
 .env
 .env.example
 .venv 
+venv
 .vscode/
 __pycache__/
 drafts
 drafts/
 lineOauth.txt
 private.key
-public.key
+public.keys

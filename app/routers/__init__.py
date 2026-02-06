@@ -1,6 +1,6 @@
 """
 API Routers
 """
-from . import dashboard_home, medications
+from . import auth, register, pets, dashboard_home, medications, upload, user_profile
 
-__all__ = ["dashboard_home", "medications"]
+__all__ = ["auth", "register", "pets", "dashboard_home", "medications", "upload", "user_profile"]

@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_SECONDS: int = 60 * 60 * 24 * 30   
 
+    # --- Cloudflare R2 Storage ---
+    R2_ENDPOINT: str = "https://3a8d6e69560a26ad23de10d131fe4605.r2.cloudflarestorage.com"
+    R2_ACCESS_KEY_ID: str = ""  # Add to .env file
+    R2_SECRET_ACCESS_KEY: str = ""  # Add to .env file
+    R2_BUCKET_NAME: str = "vetnurse"
+    R2_PUBLIC_URL: str = ""  # Add to .env file (e.g., https://pub-xxxxx.r2.dev)   
+
 
     # ฟังก์ชันช่วยโหลดไฟล์ Private Key
     @property

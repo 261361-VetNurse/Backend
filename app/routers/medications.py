@@ -16,10 +16,7 @@ from app.services.medicine_service import MedicineService
 from app.services.notification_service import NotificationService
 
 
-router = APIRouter(
-    prefix="/v1/medications",
-    tags=["Medications"]
-)
+router = APIRouter()
 
 
 def get_db():

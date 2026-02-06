@@ -19,10 +19,7 @@ from app.schemas.appointment import (
 from app.services.appointment_service import AppointmentService
 
 
-router = APIRouter(
-    prefix="/v1/appointments",
-    tags=["Appointments"]
-)
+router = APIRouter()
 
 
 def get_db():

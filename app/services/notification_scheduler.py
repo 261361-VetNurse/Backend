@@ -35,7 +35,7 @@ class NotificationScheduler:
         2. Have not yet ended (end_date >= today)
         3. Have started or will start soon (start_date <= today + 2 days)
         """
-        if not self.db:
+        if self.db is None:
             print("⚠️ Database not set for scheduler")
             return
             
@@ -111,7 +111,7 @@ class NotificationScheduler:
     
     def start(self):
         """Start the scheduler"""
-        if not self.db:
+        if self.db is None:
             print("⚠️ Cannot start scheduler: Database not set")
             return
             

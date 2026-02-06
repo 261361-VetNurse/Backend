@@ -69,6 +69,7 @@ async def get_home_page_dashboard(
         pets_data = [
             {
                 "pet_id": str(pet["_id"]),
+                "name": pet.get("name", "Unknown Pet"),
                 "profile_image": pet.get("profile_image", "")
             }
             for pet in pets
@@ -125,7 +126,7 @@ async def get_home_page_dashboard(
         appointments_data = []
         for appt in appointments:
             # Get pet details
-            pet = await db.PETS.find_one({"_id": appt["_id"]})
+            pet = await db.PETS.find_one({"_id": appt["pet_id"]})
             pet_info = {
                 "name": pet["name"] if pet else "Unknown Pet",
                 "profile_image": pet.get("profile_image", "") if pet else ""

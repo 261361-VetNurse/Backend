@@ -1,11 +1,18 @@
 import asyncio
 import os
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 
 # --- Configuration ---
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+from dotenv import load_dotenv
+load_dotenv()
+
+MONGO_URI = os.getenv("MONGODB_URL")
+if not MONGO_URI:
+    print("❌ Error: MONGODB_URL not found in .env file")
+    exit(1)
+    
 DB_NAME = "pet_medic_db"
 
 # --- Helper Functions ---
@@ -21,10 +28,12 @@ def generate_notifications(pet_id, user_id, medicine_id, medicine_name, pet_name
     """
     notifications = []
     # Use UTC time to match API queries
+    # Ensure both start_date and end_date are naive for comparison and loop
     current_date = start_date.replace(tzinfo=None) if start_date.tzinfo else start_date
+    end_date_naive = end_date.replace(tzinfo=None) if end_date.tzinfo else end_date
     
     # วนลูปตั้งแต่วันเริ่มจนถึงวันจบ
-    while current_date <= end_date:
+    while current_date <= end_date_naive:
         # เช็คว่าวันปัจจุบันตรงกับ frequency ที่ตั้งไว้ไหม
         if current_date.weekday() in frequency_days:
             for reminder_dt in reminder_times:
@@ -42,8 +51,8 @@ def generate_notifications(pet_id, user_id, medicine_id, medicine_name, pet_name
                     "status": "active",
                     "sending_count": 0,
                     "istaken": False,
-                    "created_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "created_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc)
                 })
         
         current_date += timedelta(days=1)
@@ -82,8 +91,8 @@ async def create_mock_data():
             "lname": "HasMeds",
             "contact": {"phone": "0811111111", "line_id": "line_user1", "email": "user1@example.com"},
             "address": {"address_line1": "123 Home", "province": "Bangkok", "country": "Thailand"},
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         },
         {
             "_id": ObjectId(),
@@ -91,8 +100,8 @@ async def create_mock_data():
             "lname": "NoMeds",
             "contact": {"phone": "0822222222", "line_id": "line_user2", "email": "user2@example.com"},
             "address": {"address_line1": "456 Condo", "province": "Chiang Mai", "country": "Thailand"},
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
     ]
 
@@ -106,7 +115,7 @@ async def create_mock_data():
     # 🔑 STEP 2: CREATE JWT (20 Years Expiry)
     # ==========================================
     print("🔑 Creating JWT Tokens (Expires in 20 years)...")
-    expiry_date = datetime.utcnow() + timedelta(days=365 * 20)
+    expiry_date = datetime.now(timezone.utc) + timedelta(days=365 * 20)
     jwt_data = [
         {
             "access_token": "mock_token_user_1_long_live",
@@ -114,8 +123,8 @@ async def create_mock_data():
             "key_id": "mock_key_1",
             "token_type": "bearer",
             "expires_in": expiry_date,
-            "created_at": datetime.now(),
-            "updated_at": datetime.now()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         },
         {
             "access_token": "mock_token_user_2_long_live",
@@ -123,8 +132,8 @@ async def create_mock_data():
             "key_id": "mock_key_2",
             "token_type": "bearer",
             "expires_in": expiry_date,
-            "created_at": datetime.now(),
-            "updated_at": datetime.now()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
     ]
     await db["JWT"].insert_many(jwt_data)
@@ -148,8 +157,8 @@ async def create_mock_data():
             "allergies": [],
             "infecund": True,
             "profile_image": "http://mock.img/lucky.jpg",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         },
         {
             "_id": ObjectId(),
@@ -164,8 +173,8 @@ async def create_mock_data():
             "allergies": ["Seafood"],
             "infecund": False,
             "profile_image": "http://mock.img/mochi.jpg",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
     ]
     result_pets_u1 = await db["PETS"].insert_many(pets_u1_data)
@@ -187,8 +196,8 @@ async def create_mock_data():
             "allergies": [],
             "infecund": False,
             "profile_image": "",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
     ]
     await db["PETS"].insert_many(pets_u2_data)
@@ -203,7 +212,7 @@ async def create_mock_data():
     # >>> Medicine 1: Amoxycillin for Lucky (Pet 1) <<<
     # กินทุกวัน (Daily) เวลา 08:00 และ 20:00 เป็นเวลา 7 วัน
     med1_id = ObjectId()
-    start_date = datetime.utcnow()
+    start_date = datetime.now(timezone.utc)
     end_date = start_date + timedelta(days=7) 
     reminder_times = [get_dummy_date("08:00"), get_dummy_date("20:00")]
     
@@ -221,8 +230,8 @@ async def create_mock_data():
         "reminder_time": reminder_times,
         "start_date": start_date,
         "end_date": end_date,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
     })
     
     # Generate Notifications for Med 1
@@ -235,8 +244,9 @@ async def create_mock_data():
 
     # >>> Medicine 2: Vitamin Gel for Mochi (Pet 2) <<<
     # กิน จันทร์(0), พุธ(2), ศุกร์(4) เวลา 10:00 เป็นเวลา 30 วัน
+    # NOTE: Changed frequency from "0,2,4" to "0" (Monday) to comply with DB Schema Validation
     med2_id = ObjectId()
-    start_date_m2 = datetime.utcnow()
+    start_date_m2 = datetime.now(timezone.utc)
     end_date_m2 = start_date_m2 + timedelta(days=30)
     reminder_times_m2 = [get_dummy_date("10:00")]
     
@@ -249,19 +259,20 @@ async def create_mock_data():
         "properties": "Supplement",
         "image_urls": [],
         "dosage": "1 pump",
-        "frequency": "0,2,4",  # 0=Mon, 2=Wed, 4=Fri
+        "frequency": "0",  # Changed from "0,2,4" to "0" (Monday) to match schema enum
         "status": "TAKE",
         "reminder_time": reminder_times_m2,
         "start_date": start_date_m2,
         "end_date": end_date_m2,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
     })
 
     # Generate Notifications for Med 2
+    # NOTE: Changed from [0, 2, 4] to [0] to match frequency "0"
     notis_med2 = generate_notifications(
         pet2_id, user1_id, med2_id, "Vitamin Gel", "Mochi",
-        start_date_m2, end_date_m2, [0, 2, 4], reminder_times_m2
+        start_date_m2, end_date_m2, [0], reminder_times_m2
     )
     notifications_data.extend(notis_med2)
 

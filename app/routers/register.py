@@ -3,7 +3,7 @@ from app.schemas.register_schema import OwnerRegister, PetRegister
 from app.services import user_service
 from app.services.auth_dependency import get_current_user
 
-router = APIRouter(tags=["Register"])
+router = APIRouter()
 
 @router.post("/owner") 
 async def register_owner_endpoint(

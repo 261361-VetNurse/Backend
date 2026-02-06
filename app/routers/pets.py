@@ -5,7 +5,7 @@ from app.services import user_service
 from app.services.auth_dependency import get_current_user 
 from app.schemas.pet_schema import AppointmentCreate, MedicalHistoryCreate, PetNoteCreate , PetUpdateSchema, MedicationCreate
 
-router = APIRouter(prefix="/v1/pets", tags=["Pets"])
+router = APIRouter()
 
 # API สำหรับดึงรายการสัตว์เลี้ยงทั้งหมด (My Pets Page)
 @router.get("") 
