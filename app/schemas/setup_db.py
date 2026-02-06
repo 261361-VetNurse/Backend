@@ -65,6 +65,7 @@ async def setup_database():
                         "weight_kg": {"bsonType": "double"},  # Fixed: string -> double
                         "allergies": {"bsonType": "array", "items": {"bsonType": "string"}},
                         "infecund": {"bsonType": "bool"},
+                        #kuy in medication kuy kuy
                         "profile_image": {"bsonType": "string"},
                         "created_at": {"bsonType": "date"},   # Fixed: timestamp -> date
                         "updated_at": {"bsonType": "date"},
