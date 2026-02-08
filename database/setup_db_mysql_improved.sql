@@ -119,6 +119,7 @@ CREATE TABLE pets (
     -- Status
     is_verified BOOLEAN DEFAULT FALSE,
     is_deleted BOOLEAN DEFAULT FALSE,
+    in_medical BOOLEAN DEFAULT FALSE COMMENT 'กำลังอยู่ในระหว่างการรักษา',
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

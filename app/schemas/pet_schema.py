@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List , Literal
 from datetime import datetime
 
@@ -32,6 +32,19 @@ class PetUpdateSchema(BaseModel):
     profile_image: Optional[str] = None 
     color: Optional[str] = None
     infecund: Optional[bool] = None
+    in_medical: Optional[bool] = None
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "name": "Lucky Jr.",
+                "weight_kg": 28.5,
+                "breed": "Golden Retriever Mix",
+                "in_medical": True,
+                "profile_image": "https://example.com/new-image.jpg"
+            }
+        }
+    )
 
 class MedicationCreate(BaseModel):
     drug_id: Optional[str] = Field(None, example="65a123...") 

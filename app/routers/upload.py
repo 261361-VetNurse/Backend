@@ -47,20 +47,30 @@ def init_r2_client():
         )
 
 
-@router.post("/image")
+@router.post("/image", summary="Upload Image", description="Upload image to Cloudflare R2 storage")
 async def upload_image(
-    file: UploadFile = File(...),
+    file: UploadFile = File(..., description="Image file (JPEG, PNG, WEBP, max 10MB)"),
     current_user: User = Depends(get_current_user_sql),
     session: AsyncSession = Depends(get_async_session)
 ):
     """
     Upload image to Cloudflare R2 storage
     
+    **Accepts:**
     - **file**: Image file (JPEG, PNG, WEBP)
+    - Maximum file size: 10MB
     
-    Returns:
+    **Returns:**
     - **url**: Public URL of uploaded image
     - **filename**: Generated filename in R2
+    
+    **Example Response:**
+    ```json
+    {
+        "url": "https://pub-xxx.r2.dev/pets/uuid-123.jpg",
+        "filename": "pets/uuid-123.jpg"
+    }
+    ```
     """
     
     # 1. User is already validated by get_current_user_sql dependency
@@ -141,7 +151,7 @@ async def upload_image(
         )
 
 
-@router.delete("/image")
+@router.delete("/image", summary="Delete Image", description="Delete image from Cloudflare R2 storage")
 async def delete_image(
     filename: str,
     current_user: dict = Depends(get_current_user_sql),
@@ -150,7 +160,16 @@ async def delete_image(
     """
     Delete image from R2 storage
     
-    - **filename**: Filename in R2 (e.g., pets/uuid.jpg)
+    **Parameters:**
+    - **filename**: Filename in R2 (e.g., pets/uuid-123.jpg)
+    
+    **Example Response:**
+    ```json
+    {
+        "message": "Image deleted successfully",
+        "filename": "pets/uuid-123.jpg"
+    }
+    ```
     """
     
     # User is already validated by get_current_user_sql dependency

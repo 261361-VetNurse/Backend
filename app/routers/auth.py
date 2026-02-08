@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Response, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.services import line_service
 from app.config import settings
@@ -13,6 +13,57 @@ router = APIRouter(tags=["Authentication 🔐"])
 
 class LineExchangeRequest(BaseModel):
     code: str
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "code": "ABC123XYZ789"
+            }
+        }
+    )
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str
+    is_new_user: bool
+    user: dict
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "token_type": "Bearer",
+                "is_new_user": False,
+                "user": {
+                    "id": 1,
+                    "display_name": "สมชาย ใจดี",
+                    "picture_url": "https://profile.line-scdn.net/...",
+                    "is_registered": True
+                }
+            }
+        }
+    )
+
+
+class UserProfileResponse(BaseModel):
+    id: int
+    display_name: str
+    picture_url: str
+    role: str
+    is_registered: bool
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": 1,
+                "display_name": "สมชาย ใจดี",
+                "picture_url": "https://profile.line-scdn.net/...",
+                "role": "owner",
+                "is_registered": True
+            }
+        }
+    )
 
 
 @router.post("/notify/appointment")
@@ -21,7 +72,7 @@ async def notify_user(line_id: str, topic: str, date: str):
     return result
 
 
-@router.get("/me")
+@router.get("/me", response_model=UserProfileResponse, summary="Get Current User", description="Get current user profile from JWT token")
 async def get_me(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
@@ -41,7 +92,7 @@ async def get_me(
     }
 
 
-@router.post("/auth/line/exchange")
+@router.post("/auth/line/exchange", response_model=AuthResponse, summary="LINE Login", description="Exchange LINE authorization code for access token")
 async def line_exchange(
     payload: LineExchangeRequest,
     session: AsyncSession = Depends(get_session)

@@ -198,21 +198,28 @@ async def mark_notification_taken(
     return {"success": True, "message": "Marked as taken"}
 
 
-@router.get("/medicines/by-pet/{pet_id}")
+@router.get("/medicines/by-pet/{pet_id}", summary="Get All Medicines", description="Get all medicines for a specific pet with full details")
 async def get_medicines_by_pet(
     pet_id: int,
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
     """
-    **GET /v1/medications/medicines/by-pet/{pet_id} - Get Pet's Medicines**
+    **GET /v1/medications/medicines/by-pet/{pet_id} - Get All Pet's Medicines**
     
-    Get list of all medicines for a specific pet.
+    Get complete list of all medicines for a specific pet with full details.
     
     **Path Parameters:**
     - **pet_id**: Pet ID (integer)
     
-    **Response:**
+    **Returns:**
+    - List of all medicines with complete information including:
+      - Basic info (name, dosage, frequency)
+      - Schedule (start_date, end_date, reminder_time)
+      - Status (active/stopped)
+      - Additional info (notes, properties, images)
+    
+    **Response Example:**
     ```json
     {
         "success": true,
@@ -223,9 +230,14 @@ async def get_medicines_by_pet(
                 "dosage": "1 tablet",
                 "frequency": "-1",
                 "status": "TAKE",
-                "start_date": "2026-02-01",
-                "end_date": "2026-02-28",
-                "reminder_time": ["08:00", "20:00"]
+                "start_date": "2026-02-01T00:00:00",
+                "end_date": "2026-02-28T00:00:00",
+                "reminder_time": ["08:00", "20:00"],
+                "notes": ["เริ่มรับประทานวันที่ 1 ก.พ.", "กินหลังอาหาร"],
+                "properties": "ยาปฏิชีวนะรักษาการติดเชื้อ",
+                "image_urls": ["https://example.com/medicine1.jpg"],
+                "created_at": "2026-02-01T10:00:00",
+                "updated_at": "2026-02-01T10:00:00"
             }
         ]
     }
@@ -243,7 +255,7 @@ async def get_medicines_by_pet(
     if not pet:
         raise HTTPException(status_code=404, detail="Pet not found")
     
-    # Get medicines for this pet
+    # Get all medicines for this pet
     medicines = await MedicineServiceSQL.get_medicines_by_pet(session, pet_id)
     
     return {
@@ -257,7 +269,12 @@ async def get_medicines_by_pet(
                 "status": med.status,
                 "start_date": med.start_date.isoformat() if med.start_date else None,
                 "end_date": med.end_date.isoformat() if med.end_date else None,
-                "reminder_time": med.reminder_time if med.reminder_time else []
+                "reminder_time": med.reminder_time if med.reminder_time else [],
+                "notes": med.notes if med.notes else [],
+                "properties": med.properties,
+                "image_urls": med.image_urls if med.image_urls else [],
+                "created_at": med.created_at.isoformat() if med.created_at else None,
+                "updated_at": med.updated_at.isoformat() if med.updated_at else None
             }
             for med in medicines
         ]

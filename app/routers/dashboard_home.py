@@ -19,22 +19,56 @@ router = APIRouter(
 )
 
 
-@router.get("")
+@router.get("", summary="Get Dashboard Data", description="Get dashboard data for pet owner home page")
 async def get_home_page_dashboard(
     access_token: str = Header(..., alias="access_token", description="JWT access token"),
     session: AsyncSession = Depends(get_async_session)
 ):
     """
-    GET: Dashboard data for pet owner home page
+    **GET: Dashboard data for pet owner home page**
     
     Requires access_token in header
     
-    Returns:
-    - fname: User's first name
-    - lname: User's last name
-    - pets: List of all user's pets with pet_id and profile_image
-    - medicines_notifications: Today's medicine notifications with pet and medicine details
-    - appointments: Current/future appointments with pet details
+    **Returns:**
+    - **fname**: User's first name
+    - **lname**: User's last name
+    - **pets**: List of all user's pets with pet_id and profile_image
+    - **medicines_notifications**: Today's medicine notifications with pet and medicine details
+    - **appointments**: Current/future appointments with pet details
+    
+    **Response Example:**
+    ```json
+    {
+        "fname": "สมชาย",
+        "lname": "ใจดี",
+        "pets": [
+            {
+                "pet_id": 1,
+                "name": "ลัคกี้",
+                "profile_image": "https://example.com/lucky.jpg",
+                "in_medical": True
+            }
+        ],
+        "medicines_notifications": [
+            {
+                "notification_id": 1,
+                "medicine_name": "Amoxicillin",
+                "time": "08:00",
+                "pet_name": "ลัคกี้",
+                "istaken": false
+            }
+        ],
+        "appointments": [
+            {
+                "appointment_id": 1,
+                "location": "คลินิกสัตว์เลี้ยงแสนรัก",
+                "date": "2026-02-15",
+                "time": "14:00",
+                "pet_name": "ลัคกี้"
+            }
+        ]
+    }
+    ```
     """
     try:
         # 1. Validate JWT token and get user_id
@@ -78,9 +112,10 @@ async def get_home_page_dashboard(
         
         pets_data = [
             {
-                "pet_id": str(pet.id),
+                "pet_id": pet.pet_id,
                 "name": pet.name,
-                "profile_image": pet.profile_image or ""
+                "profile_image": pet.profile_image or "",
+                "in_medical": pet.in_medical
             }
             for pet in pets
         ]

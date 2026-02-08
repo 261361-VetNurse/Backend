@@ -3,6 +3,8 @@ User Profile Router (SQL Version)
 """
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
 
 from app.database_sql import get_session
 from app.services.auth_dependency_sql import get_current_user
@@ -12,6 +14,26 @@ router = APIRouter(
     prefix="/v1/user",
     tags=["User Profile 👤"]
 )
+
+
+class UserProfileUpdate(BaseModel):
+    """Schema for updating user profile"""
+    display_name: Optional[str] = None
+    picture_url: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "display_name": "สมชาย ใจดี",
+                "phone": "0812345678",
+                "email": "somchai@example.com",
+                "address": "123 ถนนสุขุมวิท กรุงเทพฯ"
+            }
+        }
+    )
 
 
 @router.get("/profile")
@@ -45,7 +67,7 @@ async def get_user_profile_endpoint(
 
 @router.patch("/profile")
 async def update_user_profile_endpoint(
-    profile_data: dict,
+    profile_data: UserProfileUpdate,
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
@@ -54,7 +76,7 @@ async def update_user_profile_endpoint(
         success = await update_user_profile(
             session,
             current_user["user_id"],
-            profile_data
+            profile_data.model_dump(exclude_unset=True)
         )
         
         if not success:

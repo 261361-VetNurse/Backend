@@ -34,6 +34,7 @@ class Pet(Base):
     # Status
     is_verified = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False, index=True)
+    in_medical = Column(Boolean, default=False, comment='กำลังอยู่ในระหว่างการรักษา')
     
     # Timestamps
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())

@@ -17,7 +17,16 @@ class NotificationFeedItem(BaseModel):
 
     model_config = ConfigDict(
         populate_by_name=True,
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed=True,
+        json_schema_extra={
+            "example": {
+                "_id": 1,
+                "title": "ยา Amoxicillin - 08:00 น.",
+                "notification_at": "2026-02-08T08:00:00",
+                "istaken": False,
+                "pet_id": 2
+            }
+        }
     )
 
 
@@ -38,11 +47,35 @@ class NotificationDetail(BaseModel):
 
     model_config = ConfigDict(
         populate_by_name=True,
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed=True,
+        json_schema_extra={
+            "example": {
+                "_id": 1,
+                "pet_id": 2,
+                "user_id": 3,
+                "medicine_id": 5,
+                "title": "ยา Amoxicillin - 08:00 น.",
+                "notification_at": "2026-02-08T08:00:00",
+                "sending_status": "not_sent",
+                "status": "pending",
+                "sending_count": 0,
+                "istaken": False,
+                "created_at": "2026-02-07T10:00:00",
+                "updated_at": "2026-02-07T10:00:00"
+            }
+        }
     )
 
 
 class MarkTakenRequest(BaseModel):
     """Schema for marking medicine as taken"""
     istaken: Optional[bool] = Field(default=True, description="Mark as taken or not taken")
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "istaken": True
+            }
+        }
+    )
 
