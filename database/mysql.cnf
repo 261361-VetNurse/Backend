@@ -1,0 +1,63 @@
+# ====================================================================
+# Custom MySQL Configuration for Pet Medication Diary
+# ====================================================================
+
+[mysqld]
+# Character Set
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+
+# Timezone
+default-time-zone = '+07:00'
+
+# Performance Settings
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+innodb_file_per_table = 1
+
+# Binary Logging (for replication/backup)
+log_bin = /var/log/mysql/mysql-bin.log
+binlog_expire_logs_seconds = 604800  # 7 days
+max_binlog_size = 100M
+
+# Slow Query Log (for optimization)
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow-query.log
+long_query_time = 2
+
+# General Query Log (disable in production)
+# general_log = 1
+# general_log_file = /var/log/mysql/general-query.log
+
+# Error Log
+log_error = /var/log/mysql/error.log
+
+# Connection Settings
+max_connections = 200
+max_connect_errors = 100
+connect_timeout = 10
+wait_timeout = 600
+interactive_timeout = 600
+
+# Query Cache (deprecated in MySQL 8.0, but included for reference)
+# query_cache_type = 0
+# query_cache_size = 0
+
+# InnoDB Settings
+innodb_buffer_pool_size = 1G
+innodb_log_buffer_size = 16M
+innodb_log_file_size = 256M
+innodb_lock_wait_timeout = 50
+
+# Temp Table Settings
+tmp_table_size = 64M
+max_heap_table_size = 64M
+
+# Security
+local_infile = 0
+
+[mysql]
+default-character-set = utf8mb4
+
+[client]
+default-character-set = utf8mb4

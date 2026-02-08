@@ -24,9 +24,13 @@ Jinja2==3.1.6
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mdurl==0.1.2
-motor==3.6.0
 packaging==25.0
 passlib==1.7.4
+# SQL Database Libraries
+aiomysql==0.2.0
+sqlalchemy==2.0.25
+asyncmy==0.2.9
+pymysql==1.1.0
 pyasn1==0.6.1
 pycparser==2.23
 pydantic==2.10.3
@@ -34,7 +38,6 @@ pydantic-settings==2.6.1
 pydantic_core==2.27.1
 Pygments==2.19.2
 PyJWT==2.10.1
-pymongo==4.9.1
 python-dotenv==1.2.1
 python-jose==3.3.0
 python-multipart==0.0.19
@@ -55,6 +58,5 @@ tzdata==2025.3
 tzlocal==5.3.1
 urllib3==2.6.2
 uvicorn==0.34.0
-uvloop==0.22.1
 watchfiles==1.1.1
 websockets==15.0.1

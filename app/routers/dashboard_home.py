@@ -4,26 +4,25 @@ Pet Owners Home Page Router - Dashboard
 
 from fastapi import APIRouter, HTTPException, status, Depends, Header
 from typing import Optional
-from bson import ObjectId
 from datetime import datetime, timedelta
-from app.database import get_database
+from sqlalchemy import select, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.models_sql.base import get_async_session
+from app.models_sql import User, Pet, Medicine, MedicineNotification, Appointment, AppointmentNotification, JWTToken
 
 
 router = APIRouter(
     prefix="/v1/dashboard/home",
-    tags=["Dashboard - Home"]
+    tags=["Dashboard 🏠"]
 )
-
-
-def get_db():
-    """Dependency to get database instance"""
-    return get_database()
 
 
 @router.get("")
 async def get_home_page_dashboard(
     access_token: str = Header(..., alias="access_token", description="JWT access token"),
-    db = Depends(get_db)
+    session: AsyncSession = Depends(get_async_session)
 ):
     """
     GET: Dashboard data for pet owner home page
@@ -39,7 +38,11 @@ async def get_home_page_dashboard(
     """
     try:
         # 1. Validate JWT token and get user_id
-        jwt_record = await db.JWT.find_one({"access_token": access_token})
+        result = await session.execute(
+            select(JWTToken).where(JWTToken.access_token == access_token)
+        )
+        jwt_record = result.scalar_one_or_none()
+        
         if not jwt_record:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -47,17 +50,20 @@ async def get_home_page_dashboard(
             )
         
         # Check if token is expired
-        if jwt_record.get("expires_in") and jwt_record["expires_in"] < datetime.utcnow():
+        if jwt_record.expires_in and jwt_record.expires_in < datetime.utcnow():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Access token expired"
             )
         
-        user_id_str = jwt_record["user_id"]
-        user_id = ObjectId(user_id_str)
+        user_id = jwt_record.user_id
         
         # 2. Get user information
-        user = await db.USERS.find_one({"_id": user_id})
+        result = await session.execute(
+            select(User).where(User.id == user_id)
+        )
+        user = result.scalar_one_or_none()
+        
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -65,12 +71,16 @@ async def get_home_page_dashboard(
             )
         
         # 3. Get all pets of the user
-        pets = await db.PETS.find({"user_id": user_id}).to_list(length=100)
+        result = await session.execute(
+            select(Pet).where(Pet.user_id == user_id)
+        )
+        pets = result.scalars().all()
+        
         pets_data = [
             {
-                "pet_id": str(pet["_id"]),
-                "name": pet.get("name", "Unknown Pet"),
-                "profile_image": pet.get("profile_image", "")
+                "pet_id": str(pet.id),
+                "name": pet.name,
+                "profile_image": pet.profile_image or ""
             }
             for pet in pets
         ]
@@ -79,82 +89,81 @@ async def get_home_page_dashboard(
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
         
-        medicine_notifications = await db.MEDICINES_NOTIFICATION.find({
-            "user_id": user_id,
-            "notification_at": {
-                "$gte": today_start,
-                "$lt": today_end
-            }
-        }).to_list(length=100)
+        # Get medicine notifications with medicine and pet details
+        result = await session.execute(
+            select(MedicineNotification)
+            .options(
+                selectinload(MedicineNotification.medicine),
+                selectinload(MedicineNotification.pet)
+            )
+            .where(
+                and_(
+                    MedicineNotification.user_id == user_id,
+                    MedicineNotification.notification_at >= today_start,
+                    MedicineNotification.notification_at < today_end
+                )
+            )
+        )
+        medicine_notifications = result.scalars().all()
         
-        # Populate medicine and pet details for notifications
+        # Build notifications data
         notifications_data = []
         for notif in medicine_notifications:
-            # Get medicine details
-            medicine = await db.MEDICINES.find_one({"_id": notif["medicine_id"]})
-            medicine_name = medicine["name"] if medicine else "Unknown Medicine"
-            
-            # Get pet details
-            pet = await db.PETS.find_one({"_id": notif["pet_id"]})
-            pet_info = {
-                "name": pet["name"] if pet else "Unknown Pet",
-                "profile_image": pet.get("profile_image", "") if pet else ""
-            }
-            
             notifications_data.append({
-                "_id": str(notif["_id"]),
-                "title": notif["title"],
-                "medicine_id": str(notif["medicine_id"]),
-                "medicine_name": medicine_name,
-                "pet_id": str(notif["pet_id"]),
-                "pet_name": pet_info["name"],
-                "pet_image": pet_info["profile_image"],
-                "notification_at": notif["notification_at"],
-                "status": notif.get("status", "pending"),
-                "istaken": notif.get("istaken", False)
+                "_id": str(notif.id),
+                "title": notif.title,
+                "medicine_id": str(notif.medicine_id),
+                "medicine_name": notif.medicine.name if notif.medicine else "Unknown Medicine",
+                "pet_id": str(notif.pet_id),
+                "pet_name": notif.pet.name if notif.pet else "Unknown Pet",
+                "pet_image": notif.pet.profile_image if notif.pet else "",
+                "notification_at": notif.notification_at,
+                "status": notif.status or "pending",
+                "istaken": notif.istaken or False
             })
         
         # 5. Get current/future appointments (not past)
         current_time = datetime.utcnow()
         
-        appointments = await db.APPOINTMENTS.find({
-            "user_id": user_id,
-            "appointment_date": {"$gte": current_time}
-        }).sort("appointment_date", 1).to_list(length=100)
+        result = await session.execute(
+            select(Appointment)
+            .options(
+                selectinload(Appointment.pet),
+                selectinload(Appointment.notification)
+            )
+            .where(
+                and_(
+                    Appointment.user_id == user_id,
+                    Appointment.appointment_date >= current_time
+                )
+            )
+            .order_by(Appointment.appointment_date)
+        )
+        appointments = result.scalars().all()
         
-        # Populate pet details and notification status for appointments
+        # Build appointments data
         appointments_data = []
         for appt in appointments:
-            # Get pet details
-            pet = await db.PETS.find_one({"_id": appt["pet_id"]})
-            pet_info = {
-                "name": pet["name"] if pet else "Unknown Pet",
-                "profile_image": pet.get("profile_image", "") if pet else ""
-            }
-            
-            # Get appointment notification details
-            appt_notification = await db.APPOINTMENTS_NOTIFICATION.find_one({"appointment_id": appt["_id"]})
-            notification_status = appt_notification.get("status", "pending") if appt_notification else "pending"
+            notification_status = appt.notification.status if appt.notification else "pending"
             
             appointments_data.append({
-                "_id": str(appt["_id"]),
-                "pet_id": str(appt["pet_id"]),
-                "pet_name": pet_info["name"],
-                "pet_image": pet_info["profile_image"],
-                "appointment_date": appt["appointment_date"],
-                "status": appt.get("status", "pending"),
+                "_id": str(appt.id),
+                "pet_id": str(appt.pet_id),
+                "pet_name": appt.pet.name if appt.pet else "Unknown Pet",
+                "pet_image": appt.pet.profile_image if appt.pet else "",
+                "appointment_date": appt.appointment_date,
+                "status": appt.status or "pending",
                 "notification_status": notification_status,
-                "note": appt.get("note", "")
+                "note": appt.note or ""
             })
         
         # 6. Return dashboard data
         return {
             "success": True,
             "data": {
-                "fname": user["fname"],
-                "lname": user.get("lname", ""),
+                "fname": user.fname,
+                "lname": user.lname or "",
                 "pets": pets_data,
-                # "line_profile": None,  # TODO: Implement LINE profile integration
                 "medicines_notifications": notifications_data,
                 "appointments": appointments_data
             }
@@ -167,3 +176,4 @@ async def get_home_page_dashboard(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching dashboard data: {str(e)}"
         )
+

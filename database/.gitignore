@@ -1,0 +1,31 @@
+# Environment variables (contains sensitive data)
+.env
+
+# Database backups
+*.sql.gz
+*.sql.zip
+backup_*.sql
+*_backup.sql
+
+# MySQL dumps
+dump/
+backups/
+
+# Logs
+*.log
+logs/
+
+# Docker volumes data (if mounted locally)
+data/
+mysql_data/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

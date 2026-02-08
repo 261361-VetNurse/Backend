@@ -2,53 +2,23 @@
 Appointment Schemas - Pydantic models for appointment data validation
 """
 
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Literal
 from datetime import datetime
-from bson import ObjectId
-
-
-class PyObjectId(str):
-    """Custom type for MongoDB ObjectId validation"""
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v, info):
-        if isinstance(v, ObjectId):
-            return str(v)
-        if isinstance(v, str):
-            try:
-                ObjectId(v)
-                return v
-            except Exception:
-                raise ValueError("Invalid ObjectId")
-        raise ValueError("Invalid ObjectId")
 
 
 class AppointmentBase(BaseModel):
     """Base schema for appointment data"""
-    pet_id: str
+    pet_id: int
     location: str
     appointment_date: datetime
     status: Literal["Upcoming", "Completed", "Canceled"] = "Upcoming"
     note: Optional[str] = None
 
-    @field_validator('pet_id')
-    @classmethod
-    def validate_pet_id(cls, v):
-        """Validate pet_id is a valid ObjectId"""
-        try:
-            ObjectId(v)
-            return v
-        except Exception:
-            raise ValueError("Invalid pet_id format")
-
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "pet_id": "507f1f77bcf86cd799439011",
+                "pet_id": 1,
                 "location": "ABC Veterinary Clinic",
                 "appointment_date": "2026-01-20T14:00:00",
                 "status": "Upcoming",
@@ -84,9 +54,9 @@ class AppointmentUpdate(BaseModel):
 
 class AppointmentFeedItem(BaseModel):
     """Lightweight schema for appointment list view"""
-    id: str = Field(alias="_id")
+    id: int = Field(alias="_id")
     note: Optional[str]
-    pet_id: str
+    pet_id: int
     appointment_date: datetime
     status: str
 
@@ -94,9 +64,9 @@ class AppointmentFeedItem(BaseModel):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "_id": "507f1f77bcf86cd799439011",
+                "_id": 1,
                 "note": "Annual checkup",
-                "pet_id": "507f1f77bcf86cd799439012",
+                "pet_id": 2,
                 "appointment_date": "2026-01-20T14:00:00",
                 "status": "Upcoming"
             }
@@ -106,9 +76,9 @@ class AppointmentFeedItem(BaseModel):
 
 class AppointmentDetail(BaseModel):
     """Full schema for appointment details"""
-    id: str = Field(alias="_id")
-    pet_id: str
-    user_id: str
+    id: int = Field(alias="_id")
+    pet_id: int
+    user_id: int
     location: str
     appointment_date: datetime
     status: str
@@ -120,9 +90,9 @@ class AppointmentDetail(BaseModel):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "_id": "507f1f77bcf86cd799439011",
-                "pet_id": "507f1f77bcf86cd799439012",
-                "user_id": "507f1f77bcf86cd799439013",
+                "_id": 1,
+                "pet_id": 2,
+                "user_id": 3,
                 "location": "ABC Veterinary Clinic",
                 "appointment_date": "2026-01-20T14:00:00",
                 "status": "Upcoming",

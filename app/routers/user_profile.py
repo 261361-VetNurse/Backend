@@ -1,89 +1,37 @@
 """
-User Profile Router
+User Profile Router (SQL Version)
 """
+from fastapi import APIRouter, HTTPException, status, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, HTTPException, status, Header
-from app.database import get_database
-from datetime import datetime
-from bson import ObjectId
+from app.database_sql import get_session
+from app.services.auth_dependency_sql import get_current_user
+from app.services.user_service_sql import get_user_profile, update_user_profile
 
 router = APIRouter(
     prefix="/v1/user",
-    tags=["User Profile"]
+    tags=["User Profile 👤"]
 )
 
 
-async def get_current_user_from_token(access_token: str, db):
-    """Validate access token and return user_id"""
-    jwt_record = await db.JWT.find_one({"access_token": access_token})
-    
-    if not jwt_record:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid access token"
-        )
-    
-    if jwt_record.get("expires_in") and jwt_record["expires_in"] < datetime.utcnow():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token expired"
-        )
-    
-    return jwt_record["user_id"]
-
-
 @router.get("/profile")
-async def get_user_profile(
-    access_token: str = Header(..., alias="access_token")
+async def get_user_profile_endpoint(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
 ):
-    """
-    Get current user's profile information
-    
-    Returns:
-    - User profile data including name, contact info, etc.
-    """
-    db = get_database()
-    
+    """Get current user's profile information"""
     try:
-        # Get user_id from token
-        user_id_str = await get_current_user_from_token(access_token, db)
-        user_id = ObjectId(user_id_str)
+        profile = await get_user_profile(session, current_user["user_id"])
         
-        # Get user from database
-        user = await db.USERS.find_one({"_id": user_id})
-        
-        if not user:
+        if not profile:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
         
-        # Extract contact info if it exists
-        contact = user.get("contact", {})
-        address = user.get("address", {})
-        
         return {
             "success": True,
-            "data": {
-                "id": str(user["_id"]),
-                "fname": user.get("fname", ""),
-                "lname": user.get("lname", ""),
-                "display_name": user.get("display_name", ""),
-                "line_id": user.get("line_id", ""),
-                "picture_url": user.get("picture_url", ""),
-                "role": user.get("role", "pet_owner"),
-                "contact": {
-                    "phone": contact.get("phone", ""),
-                    "email": contact.get("email", ""),
-                    "gender": contact.get("gender", "")
-                },
-                "address": {
-                    "street": address.get("street", ""),
-                    "city": address.get("city", ""),
-                    "province": address.get("province", ""),
-                    "postal_code": address.get("postal_code", "")
-                }
-            }
+            "data": profile
         }
         
     except HTTPException:
@@ -96,38 +44,23 @@ async def get_user_profile(
 
 
 @router.patch("/profile")
-async def update_user_profile(
+async def update_user_profile_endpoint(
     profile_data: dict,
-    access_token: str = Header(..., alias="access_token")
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
 ):
-    """
-    Update current user's profile information
-    
-    Body:
-    - fname, lname, contact, address, etc.
-    """
-    db = get_database()
-    
+    """Update current user's profile information"""
     try:
-        # Get user_id from token
-        user_id_str = await get_current_user_from_token(access_token, db)
-        user_id = ObjectId(user_id_str)
-        
-        # Update user
-        update_data = {
-            **profile_data,
-            "updated_at": datetime.utcnow()
-        }
-        
-        result = await db.USERS.update_one(
-            {"_id": user_id},
-            {"$set": update_data}
+        success = await update_user_profile(
+            session,
+            current_user["user_id"],
+            profile_data
         )
         
-        if result.matched_count == 0:
+        if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail="User not found or no changes made"
             )
         
         return {

@@ -2,38 +2,21 @@
 Image Upload Router - Cloudflare R2 Integration
 """
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Header
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Header, Depends
 from typing import Optional
 import uuid
 from datetime import datetime
 import io
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models_sql.base import get_async_session
+from app.models_sql import User
+from app.services.auth_dependency_sql import get_current_user_sql
 
 router = APIRouter(
     prefix="/v1/upload",
-    tags=["Upload"]
+    tags=["Upload 📤"]
 )
-
-
-async def get_current_user_from_token(access_token: str):
-    """Validate access token and return user_id (simplified version)"""
-    from app.database import get_database
-    
-    db = get_database()
-    jwt_record = await db.JWT.find_one({"access_token": access_token})
-    
-    if not jwt_record:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid access token"
-        )
-    
-    if jwt_record.get("expires_in") and jwt_record["expires_in"] < datetime.utcnow():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Access token expired"
-        )
-    
-    return jwt_record["user_id"]
 
 
 def init_r2_client():
@@ -67,21 +50,20 @@ def init_r2_client():
 @router.post("/image")
 async def upload_image(
     file: UploadFile = File(...),
-    access_token: str = Header(..., alias="access_token")
+    current_user: User = Depends(get_current_user_sql),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """
     Upload image to Cloudflare R2 storage
     
     - **file**: Image file (JPEG, PNG, WEBP)
-    - **access_token**: JWT access token for authentication
     
     Returns:
     - **url**: Public URL of uploaded image
     - **filename**: Generated filename in R2
     """
     
-    # 1. Validate authentication
-    user_id = await get_current_user_from_token(access_token)
+    # 1. User is already validated by get_current_user_sql dependency
     
     # 2. Validate file type
     allowed_types = ["image/jpeg", "image/png", "image/jpg", "image/webp"]
@@ -162,18 +144,16 @@ async def upload_image(
 @router.delete("/image")
 async def delete_image(
     filename: str,
-    access_token: str = Header(..., alias="access_token")
+    current_user: dict = Depends(get_current_user_sql),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """
     Delete image from R2 storage
     
     - **filename**: Filename in R2 (e.g., pets/uuid.jpg)
-    - **access_token**: JWT access token
     """
     
-    # Validate authentication
-    user_id = await get_current_user_from_token(access_token)
-    
+    # User is already validated by get_current_user_sql dependency
     try:
         from app.config import settings
         

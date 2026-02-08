@@ -8,14 +8,20 @@ class Settings(BaseSettings):
     APP_NAME: str = "Vet Nurse Backend"
     APP_VERSION: str = "0.1.0"
     
-    # Database
-    MONGODB_URL: str = "mongodb://localhost:27017"
-    # MONGODB_DB_NAME: str = "backend_db"
+    # Database - MySQL
+    MYSQL_HOST: str = "localhost"
+    MYSQL_PORT: int = 3306
+    MYSQL_USER: str = "pet_medic_user"
+    MYSQL_PASSWORD: str = "secure_password_2026"
+    MYSQL_DATABASE: str = "pet_medic_db"
+    
+    @property
+    def MYSQL_URL(self) -> str:
+        return f"mysql+aiomysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}?charset=utf8mb4"
 
     # --- LINE Messaging API (JWT) ---
     CHANNEL_ID: str
     KEY_ID: str
-    MONGODB_DB_NAME: str = "pet_medic_db"
     
     # --- LINE Login ---
     LOGIN_CLIENT_ID: str
