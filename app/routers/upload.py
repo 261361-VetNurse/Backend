@@ -2,20 +2,16 @@
 Image Upload Router - Cloudflare R2 Integration
 """
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Header, Depends
-from typing import Optional
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
 import uuid
-from datetime import datetime
-import io
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models_sql.base import get_async_session
-from app.models_sql import User
 from app.services.auth_dependency_sql import get_current_user_sql
 
 router = APIRouter(
     prefix="/v1/upload",
-    tags=["Upload 📤"]
+    tags=["Upload"]
 )
 
 
@@ -50,7 +46,7 @@ def init_r2_client():
 @router.post("/image", summary="Upload Image", description="Upload image to Cloudflare R2 storage")
 async def upload_image(
     file: UploadFile = File(..., description="Image file (JPEG, PNG, WEBP, max 10MB)"),
-    current_user: User = Depends(get_current_user_sql),
+    current_user: dict = Depends(get_current_user_sql),
     session: AsyncSession = Depends(get_async_session)
 ):
     """

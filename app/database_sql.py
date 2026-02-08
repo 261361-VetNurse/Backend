@@ -12,14 +12,14 @@ async def connect_to_mysql():
     """Initialize MySQL connection"""
     global engine
     engine = get_async_engine()
-    print("✅ Connected to MySQL database")
+    print("Connected to MySQL database")
 
 async def close_mysql_connection():
     """Close MySQL connection"""
     global engine
     if engine:
         await engine.dispose()
-        print("✅ Closed MySQL database connection")
+        print("Closed MySQL database connection")
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """

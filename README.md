@@ -74,6 +74,23 @@ Once the server is running, access:
 - **ReDoc**: http://localhost:8000/redoc
 - **Root Endpoint**: http://localhost:8000/
 
+### 🆕 Latest Updates (Feb 8, 2026)
+
+**Enhanced Endpoints:**
+- ✅ `GET /v1/dashboard/home` - Added profile_image, dosage, frequency, reminder_time, location
+- ✅ `GET /v1/appointments` - Added pet_name, pet_image, separated date/time
+- ✅ `GET /v1/medications/{id}` - Added pet_image, frequency, reminder_time, time_per_day, taken_at
+- ✅ `GET /v1/medications/medicines/filter?pets_id={}` - Filter medicines by pet with full details
+
+**New Symptom Records APIs:**
+- ✅ `GET /v1/symptom-records/calendar` - Get all pet health records
+- ✅ `GET /v1/symptom-records/{record_id}` - Get record details
+- ✅ `POST /v1/symptom-records` - Create new record (max 4 images)
+- ✅ `PATCH /v1/symptom-records/{record_id}` - Update existing record
+- ✅ `DELETE /v1/symptom-records/{record_id}` - Delete record
+
+📄 **See [API_SUMMARY.md](API_SUMMARY.md) for complete details**
+
 ## 🔧 Configuration
 
 Create a `.env` file in the root directory:

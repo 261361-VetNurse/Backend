@@ -5,7 +5,7 @@ API Endpoints for Medicine & Notification Management
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import Optional, List
 from datetime import datetime, date as date_type
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database_sql import get_session
@@ -14,12 +14,9 @@ from app.services.medicine_service_sql import MedicineServiceSQL
 from app.models_sql.medicine_model import Medicine, MedicineNotification
 from app.models_sql.pet_model import Pet
 from app.schemas.medicine import MedicineCreate, MedicineUpdate
-from app.schemas.response_models import (
-    NotificationListResponse, NotificationDetailResponse, 
-    MedicineListResponse, MedicineCreateResponse, SuccessResponse
-)
+from app.schemas.response_models import NotificationListResponse, SuccessResponse
 
-router = APIRouter(tags=["Medications 💊"])
+router = APIRouter(tags=["Medications"])
 
 
 @router.get("", response_model=NotificationListResponse)
@@ -39,8 +36,21 @@ async def list_medications(
     - **pets_id** (optional): Filter notifications for specific pet
     - **date** (optional): Filter by date in YYYY-MM-DD format (default: today)
     
-    **Returns:**
-    - List of notifications with ID, title, time, taken status, and pet ID
+    **Response:**
+    ```json
+    {
+        "success": true,
+        "data": [
+            {
+                "notification_id": 1,
+                "title": "Time to give Amoxicillin to Lucky",
+                "notification_at": "2026-02-08T08:00:00",
+                "istaken": false,
+                "pet_id": 1
+            }
+        ]
+    }
+    ```
     """
     try:
         # Parse date
@@ -101,7 +111,7 @@ async def list_medications(
         )
 
 
-@router.get("/{notification_id}", response_model=NotificationDetailResponse)
+@router.get("/{notification_id}")
 async def get_notification_detail(
     notification_id: int,
     current_user: dict = Depends(get_current_user),
@@ -110,13 +120,33 @@ async def get_notification_detail(
     """
     **GET /v1/medications/{notification_id} - Get Notification Details**
     
-    Get detailed information about a specific medicine notification.
+    Get detailed information about a specific medicine notification including pet and medicine details.
     
     **Path Parameters:**
     - **notification_id**: Notification ID (integer)
     
-    **Returns:**
-    - Detailed notification information including medicine, pet, and user IDs
+    **Response:**
+    ```json
+    {
+        "success": true,
+        "data": {
+            "notification_id": 1,
+            "title": "Time to give Amoxicillin to Lucky",
+            "notification_at": "2026-02-08T08:00:00",
+            "istaken": true,
+            "taken_at": "2026-02-08T22:07:04",
+            "pet_id": 1,
+            "pet_name": "Lucky",
+            "pet_image": "https://example.com/lucky.jpg",
+            "medicine_id": 1,
+            "medicine_name": "Amoxicillin",
+            "dosage": "2 tablets",
+            "frequency": "-1",
+            "reminder_time": ["08:00", "20:00"],
+            "time_per_day": 2
+        }
+    }
+    ```
     """
     result = await session.execute(
         select(MedicineNotification)
@@ -142,6 +172,12 @@ async def get_notification_detail(
     )
     pet = pet_result.scalar_one_or_none()
     
+    # Calculate time_per_day from reminder_time array length
+    time_per_day = len(medicine.reminder_time) if medicine and medicine.reminder_time else 0
+    
+    # Get taken_at timestamp (updated_at when istaken=true)
+    taken_at = notification.updated_at if notification.istaken else None
+    
     return {
         "success": True,
         "data": {
@@ -149,11 +185,16 @@ async def get_notification_detail(
             "title": notification.title,
             "notification_at": notification.notification_at.isoformat(),
             "istaken": notification.istaken,
+            "taken_at": taken_at.isoformat() if taken_at else None,
             "pet_id": notification.pet_id,
             "pet_name": pet.name if pet else None,
+            "pet_image": pet.profile_image if pet else "",
             "medicine_id": notification.medicine_id,
             "medicine_name": medicine.name if medicine else None,
             "dosage": medicine.dosage if medicine else None,
+            "frequency": medicine.frequency if medicine else None,
+            "reminder_time": medicine.reminder_time if medicine else [],
+            "time_per_day": time_per_day
         }
     }
 
@@ -281,6 +322,74 @@ async def get_medicines_by_pet(
     }
 
 
+@router.get("/medicines/filter", summary="Filter Medicines by Pet", description="Get medicines filtered by pet_id with pet information")
+async def filter_medicines_by_pet(
+    pets_id: int = Query(..., description="Pet ID to filter medicines", example=1),
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    **GET /v1/medications/medicines/filter?pets_id={pet_id} - Filter Medicines by Pet**
+    
+    Get all medicines for a specific pet with pet information (name and image).
+    
+    **Query Parameters:**
+    - **pets_id** (required): Pet ID (integer)
+    
+    **Response:**
+    ```json
+    {
+        "success": true,
+        "data": [
+            {
+                "medicine_id": 1,
+                "medicine_name": "Amoxicillin",
+                "medicine_dosage": "1 tablet",
+                "medicine_frequency": "-1",
+                "pet_name": "Lucky",
+                "pet_image": "https://example.com/lucky.jpg",
+                "reminder_time": ["08:00", "20:00"]
+            }
+        ]
+    }
+    ```
+    """
+    # Verify pet ownership
+    pet_result = await session.execute(
+        select(Pet).where(and_(
+            Pet.pet_id == pets_id,
+            Pet.user_id == current_user["user_id"],
+            Pet.is_deleted == False
+        ))
+    )
+    pet = pet_result.scalar_one_or_none()
+    
+    if not pet:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pet not found or access denied"
+        )
+    
+    # Get medicines for this pet
+    medicines = await MedicineServiceSQL.get_medicines_by_pet(session, pets_id)
+    
+    return {
+        "success": True,
+        "data": [
+            {
+                "medicine_id": med.medicine_id,
+                "medicine_name": med.name,
+                "medicine_dosage": med.dosage if med.dosage else "",
+                "medicine_frequency": med.frequency,
+                "pet_name": pet.name,
+                "pet_image": pet.profile_image if pet.profile_image else "",
+                "reminder_time": med.reminder_time if med.reminder_time else []
+            }
+            for med in medicines
+        ]
+    }
+
+
 @router.post("/medicines", status_code=status.HTTP_201_CREATED)
 async def create_medicine(
     medicine_data: MedicineCreate,
@@ -322,7 +431,7 @@ async def create_medicine(
     result = await MedicineServiceSQL.create_medicine(
         session, 
         medicine_data.pet_id,
-        medicine_data.dict()
+        medicine_data.model_dump()
     )
     
     if not result["success"]:
@@ -372,7 +481,7 @@ async def update_medicine(
         session,
         medicine_id,
         current_user["user_id"],
-        medicine_data.dict(exclude_unset=True)
+        medicine_data.model_dump(exclude_unset=True)
     )
     
     if not result["success"]:

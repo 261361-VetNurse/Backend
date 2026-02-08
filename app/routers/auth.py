@@ -9,7 +9,7 @@ from app.services.auth_service_sql import upsert_user_from_line, create_access_t
 from app.services.auth_dependency_sql import get_current_user
 
 
-router = APIRouter(tags=["Authentication 🔐"])
+router = APIRouter(tags=["Authentication"])
 
 class LineExchangeRequest(BaseModel):
     code: str
@@ -39,7 +39,7 @@ class AuthResponse(BaseModel):
                     "id": 1,
                     "display_name": "สมชาย ใจดี",
                     "picture_url": "https://profile.line-scdn.net/...",
-                    "is_registered": True
+                    "line_id": "U1234567890abcdef"
                 }
             }
         }
@@ -56,9 +56,9 @@ class UserProfileResponse(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "id": 1,
+                "id": 2,
                 "display_name": "สมชาย ใจดี",
-                "picture_url": "https://profile.line-scdn.net/...",
+                "picture_url": "https://profile.line-scdn.net/abc123",
                 "role": "owner",
                 "is_registered": True
             }

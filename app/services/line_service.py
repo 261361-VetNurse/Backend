@@ -3,7 +3,7 @@ import jwt
 import time
 from app.config import settings
 
-# --- ฟังก์ชันขอ Admin Token (JWT) เพื่อใช้ Messaging API ---
+
 async def get_admin_token():
     header = {"alg": "RS256", "typ": "JWT", "kid": settings.KEY_ID}
     payload = {
@@ -32,7 +32,7 @@ async def get_admin_token():
         )
         return response.json()
 
-# --- ฟังก์ชันสำหรับแลก User Access Token (จากหน้า Login) ---
+
 async def exchange_user_token(code: str):
     async with httpx.AsyncClient() as client:
         response = await client.post(
@@ -47,7 +47,7 @@ async def exchange_user_token(code: str):
         )
         return response.json()
 
-# --- ฟังก์ชันดึง Profile ของผู้ใช้ ---
+
 async def get_user_profile(access_token: str):
     async with httpx.AsyncClient() as client:
         response = await client.get(
@@ -56,7 +56,7 @@ async def get_user_profile(access_token: str):
         )
         return response.json()
 
-# --- ฟังก์ชันส่งแจ้งเตือนนัดหมายแบบระบุ Line ID ---
+
 async def send_push_notification(user_id: str, topic: str, date: str):
     token_data = await get_admin_token() 
     access_token = token_data.get("access_token")

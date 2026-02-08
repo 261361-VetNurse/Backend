@@ -11,19 +11,19 @@ from app.services.auth_dependency_sql import get_current_user
 from app.services.appointment_service_sql import AppointmentServiceSQL
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
 
-router = APIRouter(tags=["Appointments 📅"])
+router = APIRouter(tags=["Appointments"])
 
 
 @router.get("", summary="Get Appointments List", description="Get list of appointments for current user's pets")
 async def list_appointments(
-    status: Optional[str] = Query(None, description="Filter by status: Upcoming, Completed, Canceled", example="Upcoming"),
+    appt_status: Optional[str] = Query(None, alias="status", description="Filter by status: Upcoming, Completed, Canceled", example="Upcoming"),
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
     """
     **GET /v1/appointments - Get Appointments List**
     
-    Get list of appointments for current user's pets.
+    Get list of appointments for current user's pets with pet information.
     
     **Query Parameters:**
     - **status** (optional): Filter by status (Upcoming, Completed, Canceled)
@@ -35,30 +35,66 @@ async def list_appointments(
         "data": [
             {
                 "appointment_id": 1,
-                "pet_id": 2,
-                "location": "ABC Veterinary Clinic",
-                "appointment_date": "2026-02-15T14:00:00",
+                "pet_id": 1,
+                "pet_name": "Lucky",
+                "pet_image": "https://example.com/lucky.jpg",
+                "location": "โรงพยาบาลสัตว์ ABC",
+                "appointment_date": "2026-02-15",
+                "appointment_time": "14:00",
                 "status": "Upcoming",
-                "note": "Annual checkup"
+                "note": "ตรวจสุขภาพประจำปี"
             }
         ]
     }
     ```
     """
     try:
-        if status and status not in ["Upcoming", "Completed", "Canceled"]:
+        if appt_status and appt_status not in ["Upcoming", "Completed", "Canceled"]:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=400,
                 detail="Invalid status"
             )
         
-        appointments = await AppointmentServiceSQL.get_appointments_by_user(
-            session, 
-            current_user["user_id"],
-            status
-        )
+        from sqlalchemy import select, and_
+        from sqlalchemy.orm import selectinload
+        from app.models_sql.appointment_model import Appointment
         
-        return {"success": True, "data": appointments}
+        # Query with pet details
+        conditions = [
+            Appointment.user_id == current_user["user_id"],
+            Appointment.is_deleted == False
+        ]
+        
+        if appt_status:
+            conditions.append(Appointment.status == appt_status)
+        
+        result = await session.execute(
+            select(Appointment)
+            .options(selectinload(Appointment.pet))
+            .where(and_(*conditions))
+            .order_by(Appointment.appointment_date.asc())
+        )
+        appointments = result.scalars().all()
+        
+        # Build response with pet info and separated date/time
+        data = []
+        for appt in appointments:
+            appointment_date_str = appt.appointment_date.strftime("%Y-%m-%d") if appt.appointment_date else ""
+            appointment_time_str = appt.appointment_date.strftime("%H:%M") if appt.appointment_date else ""
+            
+            data.append({
+                "appointment_id": appt.appointment_id,
+                "pet_id": appt.pet_id,
+                "pet_name": appt.pet.name if appt.pet else "",
+                "pet_image": appt.pet.profile_image if appt.pet else "",
+                "location": appt.location,
+                "appointment_date": appointment_date_str,
+                "appointment_time": appointment_time_str,
+                "status": appt.status,
+                "note": appt.note or ""
+            })
+        
+        return {"success": True, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -83,26 +119,41 @@ async def get_appointment_detail(
         "success": true,
         "data": {
             "appointment_id": 1,
-            "pet_id": 2,
-            "pet_name": "Lucky",
-            "location": "ABC Veterinary Clinic",
+            "pet_id": 1,
+            "user_id": 2,
+            "location": "โรงพยาบาลสัตว์ ABC",
             "appointment_date": "2026-02-15T14:00:00",
             "status": "Upcoming",
-            "note": "Annual checkup"
+            "note": "ตรวจสุขภาพประจำปี",
+            "created_at": "2026-02-08T10:00:00",
+            "updated_at": "2026-02-08T10:00:00"
         }
     }
     ```
     """
-    appointment = await AppointmentServiceSQL.get_appointment_by_id(session, appointment_id)
+    appt = await AppointmentServiceSQL.get_appointment_by_id(session, appointment_id)
     
-    if not appointment:
+    if not appt:
         raise HTTPException(status_code=404, detail="Appointment not found")
     
     # Verify ownership
-    if appointment.get("user_id") != current_user["user_id"]:
+    if appt.user_id != current_user["user_id"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    return {"success": True, "data": appointment}
+    return {
+        "success": True,
+        "data": {
+            "appointment_id": appt.appointment_id,
+            "pet_id": appt.pet_id,
+            "user_id": appt.user_id,
+            "location": appt.location,
+            "appointment_date": appt.appointment_date.isoformat() if appt.appointment_date else None,
+            "status": appt.status,
+            "note": appt.note or "",
+            "created_at": appt.created_at.isoformat() if appt.created_at else None,
+            "updated_at": appt.updated_at.isoformat() if appt.updated_at else None
+        }
+    }
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, summary="Create Appointment", description="Create a new appointment with notification")
@@ -119,15 +170,15 @@ async def create_appointment(
     **Request Body:**
     ```json
     {
-        "pet_id": 2,
-        "location": "ABC Veterinary Clinic",
+        "pet_id": 1,
+        "location": "โรงพยาบาลสัตว์ ABC",
         "appointment_date": "2026-02-15T14:00:00",
         "status": "Upcoming",
-        "note": "Annual checkup"
+        "note": "ตรวจสุขภาพประจำปี"
     }
     ```
     
-    **Response:**
+    **Response (201):**
     ```json
     {
         "success": true,
@@ -170,9 +221,9 @@ async def update_appointment(
     **Request Body:** (all fields optional)
     ```json
     {
-        "location": "XYZ Animal Hospital",
+        "location": "โรงพยาบาลสัตว์ XYZ",
         "appointment_date": "2026-02-16T15:00:00",
-        "note": "Updated note"
+        "note": "อัพเดท: นำบัตรวัคซีนมาด้วย"
     }
     ```
     
@@ -180,7 +231,8 @@ async def update_appointment(
     ```json
     {
         "success": true,
-        "message": "Appointment updated successfully"
+        "notification_updated": true,
+        "notification_title_updated": false
     }
     ```
     """
@@ -188,7 +240,7 @@ async def update_appointment(
         session,
         appointment_id,
         current_user["user_id"],
-        appointment_data.dict(exclude_unset=True)
+        appointment_data.model_dump(exclude_unset=True)
     )
     
     if not result["success"]:
@@ -206,7 +258,7 @@ async def cancel_appointment(
     """
     **PATCH /v1/appointments/{appointment_id}/cancel - Cancel Appointment**
     
-    Cancel an appointment (soft delete). Sets status to 'Canceled'.
+    Cancel an appointment. Sets status to 'Canceled'.
     
     **Path Parameters:**
     - **appointment_id**: Appointment ID (integer)
@@ -215,7 +267,7 @@ async def cancel_appointment(
     ```json
     {
         "success": true,
-        "message": "Appointment canceled successfully"
+        "status": "Canceled"
     }
     ```
     """

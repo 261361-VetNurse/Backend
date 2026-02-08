@@ -1,7 +1,6 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 
-# สำหรับลงทะเบียนเจ้าของ 
 class OwnerRegister(BaseModel):
     first_name: str
     last_name: str
@@ -31,7 +30,6 @@ class OwnerRegister(BaseModel):
         }
     )
 
-# สำหรับลงทะเบียนสัตว์เลี้ยงใหม่
 class PetRegister(BaseModel):
     name: str
     species: str

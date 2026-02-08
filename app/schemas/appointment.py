@@ -2,7 +2,7 @@
 Appointment Schemas - Pydantic models for appointment data validation
 """
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, Literal
 from datetime import datetime
 
@@ -47,58 +47,6 @@ class AppointmentUpdate(BaseModel):
                 "appointment_date": "2026-01-22T15:00:00",
                 "status": "Upcoming",
                 "note": "Updated: Bring vaccination records"
-            }
-        }
-    )
-
-
-class AppointmentFeedItem(BaseModel):
-    """Lightweight schema for appointment list view"""
-    id: int = Field(alias="_id")
-    note: Optional[str]
-    pet_id: int
-    appointment_date: datetime
-    status: str
-
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "example": {
-                "_id": 1,
-                "note": "Annual checkup",
-                "pet_id": 2,
-                "appointment_date": "2026-01-20T14:00:00",
-                "status": "Upcoming"
-            }
-        }
-    )
-
-
-class AppointmentDetail(BaseModel):
-    """Full schema for appointment details"""
-    id: int = Field(alias="_id")
-    pet_id: int
-    user_id: int
-    location: str
-    appointment_date: datetime
-    status: str
-    note: Optional[str]
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "example": {
-                "_id": 1,
-                "pet_id": 2,
-                "user_id": 3,
-                "location": "ABC Veterinary Clinic",
-                "appointment_date": "2026-01-20T14:00:00",
-                "status": "Upcoming",
-                "note": "Annual checkup",
-                "created_at": "2026-01-15T10:00:00",
-                "updated_at": "2026-01-15T10:00:00"
             }
         }
     )

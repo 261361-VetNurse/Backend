@@ -533,7 +533,7 @@ VALUES (
 -- WHERE m.status = 'TAKE' 
 --   AND m.is_deleted = FALSE
 --   AND m.end_date >= CURDATE()
---   AND m.start_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY);
+--   AND m.start_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY);
 
 -- Query 3: Get user's pets with active medicines count
 -- SELECT p.*, COUNT(m.medicine_id) as active_medicines_count

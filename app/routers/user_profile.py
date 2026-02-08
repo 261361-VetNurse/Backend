@@ -12,7 +12,7 @@ from app.services.user_service_sql import get_user_profile, update_user_profile
 
 router = APIRouter(
     prefix="/v1/user",
-    tags=["User Profile 👤"]
+    tags=["User Profile"]
 )
 
 

@@ -32,8 +32,8 @@ async def register_owner(session: AsyncSession, user_id: int, owner_data: OwnerR
         update(User)
         .where(User.user_id == user_id)
         .values(
-            fname=owner_data.fname,
-            lname=owner_data.lname,
+            fname=owner_data.first_name,
+            lname=owner_data.last_name,
             phone=owner_data.phone,
             email=owner_data.email,
             address_line1=owner_data.address_line1,
@@ -42,7 +42,6 @@ async def register_owner(session: AsyncSession, user_id: int, owner_data: OwnerR
             district=owner_data.district,
             province=owner_data.province,
             postal_code=owner_data.postal_code,
-            country=owner_data.country,
             is_registered=True,
         )
     )
@@ -193,7 +192,6 @@ async def register_new_pet(session: AsyncSession, user_id: int, pet_data: PetReg
         gender=pet_data.gender,
         birth_date=pet_data.birth_date,
         weight_kg=pet_data.weight_kg,
-        allergies=pet_data.allergies,
         infecund=pet_data.infecund,
         in_medical=pet_data.in_medical,
         profile_image=pet_data.profile_image,
@@ -258,7 +256,7 @@ async def update_pet_info(session: AsyncSession, pet_id: int, data: PetUpdateSch
     Returns:
         True if successful, False otherwise
     """
-    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     
     if not update_data:
         return False

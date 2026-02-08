@@ -4,8 +4,9 @@ Business logic for medicine management and notification generation
 """
 from datetime import datetime, timedelta, time as time_obj
 from typing import List, Optional, Dict, Any
-from sqlalchemy import select, update, delete, and_, or_
+from sqlalchemy import select, update, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models_sql.medicine_model import Medicine, MedicineNotification
 from app.models_sql.pet_model import Pet
@@ -105,13 +106,20 @@ class MedicineServiceSQL:
         now = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         generation_end = now + timedelta(days=days_ahead)
         
+        # Normalize start_date/end_date to datetime (may be date or datetime)
+        if hasattr(start_date, 'hour'):
+            start_dt = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            start_dt = datetime.combine(start_date, datetime.min.time())
+        
+        if hasattr(end_date, 'hour'):
+            end_dt = end_date.replace(hour=23, minute=59, second=59)
+        else:
+            end_dt = datetime.combine(end_date, datetime.max.time().replace(microsecond=0))
+        
         # Determine actual start/end
-        actual_start = max(
-            start_date.replace(hour=0, minute=0, second=0, microsecond=0),
-            now
-        )
-        end_date_normalized = end_date.replace(hour=23, minute=59, second=59)
-        actual_end = min(generation_end, end_date_normalized)
+        actual_start = max(start_dt, now)
+        actual_end = min(generation_end, end_dt)
         
         if actual_start > actual_end:
             return 0
@@ -432,7 +440,3 @@ class MedicineServiceSQL:
         )
         await session.commit()
         return result.rowcount > 0
-
-
-# Import for backwards compatibility
-from sqlalchemy.orm import selectinload

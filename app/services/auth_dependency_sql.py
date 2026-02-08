@@ -92,6 +92,4 @@ async def get_current_user_sql(
             detail="Invalid token"
         )
 
-
-# Alias for easier migration
 get_current_user = get_current_user_sql

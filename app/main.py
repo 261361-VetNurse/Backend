@@ -7,6 +7,7 @@ from app.database_sql import connect_to_mysql, close_mysql_connection
 from app.routers import auth, register, pets, dashboard_home, upload, user_profile
 from app.routers.appointments_sql import router as appointments_router
 from app.routers.medications_sql import router as medications_router
+from app.routers.pet_records import router as pet_records_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,19 +25,19 @@ async def lifespan(app: FastAPI):
 
 # API Metadata for Swagger Documentation
 app = FastAPI(
-    title="🐾 VetNurse Backend API",
+    title="VetNurse Backend API",
     description="""
 ## Pet Medication Diary & Healthcare Management System
 
 A comprehensive RESTful API for managing pet medications, appointments, and healthcare records.
 
 ### Features:
-* 🔐 **Authentication** - LINE Login integration with JWT
-* 💊 **Medicine Management** - Schedule medications with automated notifications
-* 📅 **Appointments** - Manage veterinary appointments
-* 🐕 **Pet Profiles** - Complete pet information and medical history
-* 🏠 **Dashboard** - Overview of pets, medications, and appointments
-* 📤 **Image Upload** - Cloudflare R2 integration for pet photos
+* **Authentication** - LINE Login integration with JWT
+* **Medicine Management** - Schedule medications with automated notifications
+* **Appointments** - Manage veterinary appointments
+* **Pet Profiles** - Complete pet information and medical history
+* **Dashboard** - Overview of pets, medications, and appointments
+* **Image Upload** - Cloudflare R2 integration for pet photos
 
 ### Technology Stack:
 * **Backend**: FastAPI (Python 3.11+)
@@ -61,21 +62,20 @@ All ID fields use **integer** type (AUTO_INCREMENT primary keys), not strings.
     redoc_url="/redoc",
     openapi_url="/openapi.json",
     contact={
-        "name": "VetNurse Team",
-        "email": "support@vetnurse.com"
+        "name": "เจ้านายจ้า",
+        "email": "wachirawit_chai@cmu.ac.th"
     },
     license_info={
         "name": "MIT License",
     }
 )
 
-# ⭐ Add CORS Middleware - ต้องอยู่ก่อน include_router
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ในการ develop ใช้ * ได้, production ควรระบุ domain ที่ชัดเจน
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # อนุญาตทุก HTTP methods (GET, POST, PUT, DELETE, OPTIONS, etc.)
-    allow_headers=["*"],  # อนุญาตทุก headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(auth.router, prefix="/auth")
@@ -83,6 +83,7 @@ app.include_router(register.router, prefix="/v1/register")
 app.include_router(appointments_router, prefix="/v1/appointments")
 app.include_router(pets.router, prefix="/v1/pets")
 app.include_router(medications_router, prefix="/v1/medications")
+app.include_router(pet_records_router)
 app.include_router(dashboard_home.router)
 app.include_router(upload.router)
 app.include_router(user_profile.router)
@@ -95,7 +96,7 @@ async def root():
     Welcome message and API information.
     """
     return {
-        "message": "🐾 Welcome to VetNurse Backend API",
+        "message": "Welcome to VetNurse Backend API",
         "version": "2.0.0",
         "status": "Running",
         "database": "MySQL 8.0",

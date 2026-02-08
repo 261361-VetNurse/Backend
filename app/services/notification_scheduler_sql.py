@@ -25,15 +25,15 @@ class NotificationSchedulerSQL:
     async def generate_daily_notifications(self):
         """
         Daily job: Generate notifications for all active medicines
-        Runs at midnight and generates notifications for the next 2 days
+        Runs at midnight and generates notifications for the next 1 week (7 days)
         """
         async with self.session_factory() as session:
             try:
-                print(f"🔄 [{datetime.utcnow()}] Starting daily notification generation (SQL)...")
+                print(f"[{datetime.utcnow()}] Starting daily notification generation (SQL)...")
                 
                 # Get current time
                 now = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-                two_days_ahead = now + timedelta(days=2)
+                one_week_ahead = now + timedelta(days=7)
                 
                 # Find all active medicines within the relevant date range
                 result = await session.execute(
@@ -41,7 +41,7 @@ class NotificationSchedulerSQL:
                     .where(and_(
                         Medicine.status == 'TAKE',
                         Medicine.end_date >= now.date(),
-                        Medicine.start_date <= two_days_ahead.date(),
+                        Medicine.start_date <= one_week_ahead.date(),
                         Medicine.is_deleted == False
                     ))
                 )
@@ -57,7 +57,7 @@ class NotificationSchedulerSQL:
                         .where(and_(
                             MedicineNotification.medicine_id == medicine.medicine_id,
                             MedicineNotification.notification_at >= now,
-                            MedicineNotification.notification_at < two_days_ahead
+                            MedicineNotification.notification_at < one_week_ahead
                         ))
                     )
                     existing_notifications = existing_result.scalars().all()
@@ -85,17 +85,17 @@ class NotificationSchedulerSQL:
                         end_date=datetime.combine(medicine.end_date, datetime.max.time()),
                         frequency=medicine.frequency,
                         reminder_times=medicine.reminder_time,
-                        days_ahead=2
+                        days_ahead=7
                     )
                     
                     if count > 0:
                         total_generated += count
                         medicines_processed += 1
                 
-                print(f"✅ Generated {total_generated} notifications for {medicines_processed} medicines (SQL)")
+                print(f"Generated {total_generated} notifications for {medicines_processed} medicines (SQL)")
                 
             except Exception as e:
-                print(f"❌ Error in daily notification generation (SQL): {str(e)}")
+                print(f"Error in daily notification generation (SQL): {str(e)}")
                 await session.rollback()
     
     def start(self):
@@ -110,13 +110,13 @@ class NotificationSchedulerSQL:
         )
         
         self.scheduler.start()
-        print("🚀 Notification scheduler started (SQL version - runs at midnight daily)")
+        print("Notification scheduler started (SQL version - runs at midnight daily)")
     
     def shutdown(self):
         """Shutdown the scheduler"""
         if self.scheduler.running:
             self.scheduler.shutdown()
-            print("🛑 Notification scheduler stopped (SQL)")
+            print("Notification scheduler stopped (SQL)")
 
 
 # Global scheduler instance (SQL version)

@@ -3,7 +3,6 @@ Response Models for API Documentation (Swagger/OpenAPI)
 """
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Any
-from datetime import datetime
 
 
 # === Base Response Models ===
@@ -49,12 +48,11 @@ class NotificationItem(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "_id": 1,
                 "notification_id": 1,
-                "title": "ยา Amoxicillin - 08:00 น.",
+                "title": "Time to give Amoxicillin to Lucky",
                 "notification_at": "2026-02-08T08:00:00",
                 "istaken": False,
-                "pet_id": 2
+                "pet_id": 1
             }
         }
     )
@@ -71,12 +69,11 @@ class NotificationListResponse(BaseModel):
                 "success": True,
                 "data": [
                     {
-                        "_id": 1,
                         "notification_id": 1,
-                        "title": "ยา Amoxicillin - 08:00 น.",
+                        "title": "Time to give Amoxicillin to Lucky",
                         "notification_at": "2026-02-08T08:00:00",
                         "istaken": False,
-                        "pet_id": 2
+                        "pet_id": 1
                     }
                 ]
             }
@@ -87,25 +84,37 @@ class NotificationListResponse(BaseModel):
 class NotificationDetail(BaseModel):
     """Detailed notification information"""
     notification_id: int
-    medicine_id: int
-    pet_id: int
-    user_id: int
     title: str
     notification_at: str
     istaken: bool
-    status: str
+    taken_at: Optional[str] = None
+    pet_id: int
+    pet_name: Optional[str] = None
+    pet_image: Optional[str] = None
+    medicine_id: int
+    medicine_name: Optional[str] = None
+    dosage: Optional[str] = None
+    frequency: Optional[str] = None
+    reminder_time: List[str] = []
+    time_per_day: int = 0
     
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "notification_id": 1,
-                "medicine_id": 5,
-                "pet_id": 2,
-                "user_id": 10,
-                "title": "ยา Amoxicillin - 08:00 น.",
+                "title": "Time to give Amoxicillin to Lucky",
                 "notification_at": "2026-02-08T08:00:00",
-                "istaken": False,
-                "status": "pending"
+                "istaken": True,
+                "taken_at": "2026-02-08T22:07:04",
+                "pet_id": 1,
+                "pet_name": "Lucky",
+                "pet_image": "https://example.com/lucky.jpg",
+                "medicine_id": 1,
+                "medicine_name": "Amoxicillin",
+                "dosage": "2 tablets",
+                "frequency": "-1",
+                "reminder_time": ["08:00", "20:00"],
+                "time_per_day": 2
             }
         }
     )
@@ -173,22 +182,27 @@ class AppointmentItem(BaseModel):
     """Individual appointment in list"""
     appointment_id: int
     pet_id: int
+    pet_name: Optional[str] = None
+    pet_image: Optional[str] = None
     location: str
     appointment_date: str
+    appointment_time: Optional[str] = None
     status: str
-    note: Optional[str]
+    note: Optional[str] = None
     
     model_config = ConfigDict(
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "_id": 1,
                 "appointment_id": 1,
-                "pet_id": 2,
-                "location": "ABC Veterinary Clinic",
-                "appointment_date": "2026-02-15T14:00:00",
+                "pet_id": 1,
+                "pet_name": "Lucky",
+                "pet_image": "https://example.com/lucky.jpg",
+                "location": "โรงพยาบาลสัตว์ ABC",
+                "appointment_date": "2026-02-15",
+                "appointment_time": "14:00",
                 "status": "Upcoming",
-                "note": "Annual checkup"
+                "note": "ตรวจสุขภาพประจำปี"
             }
         }
     )
@@ -205,13 +219,15 @@ class AppointmentListResponse(BaseModel):
                 "success": True,
                 "data": [
                     {
-                        "_id": 1,
                         "appointment_id": 1,
-                        "pet_id": 2,
-                        "location": "ABC Veterinary Clinic",
-                        "appointment_date": "2026-02-15T14:00:00",
+                        "pet_id": 1,
+                        "pet_name": "Lucky",
+                        "pet_image": "https://example.com/lucky.jpg",
+                        "location": "โรงพยาบาลสัตว์ ABC",
+                        "appointment_date": "2026-02-15",
+                        "appointment_time": "14:00",
                         "status": "Upcoming",
-                        "note": "Annual checkup"
+                        "note": "ตรวจสุขภาพประจำปี"
                     }
                 ]
             }
@@ -223,22 +239,26 @@ class AppointmentDetailData(BaseModel):
     """Detailed appointment information"""
     appointment_id: int
     pet_id: int
-    pet_name: Optional[str]
+    user_id: int
     location: str
     appointment_date: str
     status: str
-    note: Optional[str]
+    note: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "appointment_id": 1,
-                "pet_id": 2,
-                "pet_name": "Lucky",
-                "location": "ABC Veterinary Clinic",
+                "pet_id": 1,
+                "user_id": 2,
+                "location": "โรงพยาบาลสัตว์ ABC",
                 "appointment_date": "2026-02-15T14:00:00",
                 "status": "Upcoming",
-                "note": "Annual checkup"
+                "note": "ตรวจสุขภาพประจำปี",
+                "created_at": "2026-02-08T10:00:00",
+                "updated_at": "2026-02-08T10:00:00"
             }
         }
     )
@@ -274,21 +294,29 @@ class PetItem(BaseModel):
     pet_id: int
     name: str
     species: str
-    breed: Optional[str]
-    age: Optional[float]
-    weight: Optional[float]
-    profile_image: Optional[str]
+    breed: Optional[str] = None
+    birth_date: Optional[str] = None
+    weight_kg: Optional[float] = None
+    color: Optional[str] = None
+    gender: Optional[str] = None
+    in_medical: Optional[bool] = None
+    infecund: Optional[bool] = None
+    profile_image: Optional[str] = None
     
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "pet_id": 2,
+                "pet_id": 1,
                 "name": "Lucky",
                 "species": "Dog",
                 "breed": "Golden Retriever",
-                "age": 3.5,
-                "weight": 25.5,
-                "profile_image": "https://example.com/image.jpg"
+                "birth_date": "2023-06-15",
+                "weight_kg": 25.5,
+                "color": "Golden",
+                "gender": "Male",
+                "in_medical": False,
+                "infecund": False,
+                "profile_image": "https://example.com/lucky.jpg"
             }
         }
     )
@@ -318,41 +346,49 @@ class PetRegisterResponse(BaseModel):
 
 class DashboardPet(BaseModel):
     """Pet info in dashboard"""
-    pet_id: str
+    pet_id: int
     name: str
-    profile_image: str
+    species: Optional[str] = None
+    breed: Optional[str] = None
+    in_medical: Optional[bool] = None
+    profile_image: Optional[str] = None
 
 
 class DashboardNotification(BaseModel):
     """Notification in dashboard"""
-    notification_id: str
+    notification_id: int
     title: str
-    medicine_id: str
-    medicine_name: str
-    pet_id: str
-    pet_name: str
-    pet_image: str
-    notification_at: datetime
-    status: str
+    medicine_id: int
+    medicine_name: Optional[str] = None
+    dosage: Optional[str] = None
+    frequency: Optional[str] = None
+    reminder_time: List[str] = []
+    time_per_day: int = 0
+    pet_id: int
+    pet_name: Optional[str] = None
+    pet_image: Optional[str] = None
+    notification_at: str
     istaken: bool
 
 
 class DashboardAppointment(BaseModel):
     """Appointment in dashboard"""
-    _id: str
-    pet_id: str
-    pet_name: str
-    pet_image: str
-    appointment_date: datetime
+    appointment_id: int
+    pet_id: int
+    pet_name: Optional[str] = None
+    pet_image: Optional[str] = None
+    location: Optional[str] = None
+    appointment_date: str
+    appointment_time: Optional[str] = None
     status: str
-    notification_status: str
-    note: str
+    note: Optional[str] = None
 
 
 class DashboardData(BaseModel):
     """Dashboard data"""
     fname: str
     lname: str
+    profile_image: Optional[str] = None
     pets: List[DashboardPet]
     medicines_notifications: List[DashboardNotification]
     appointments: List[DashboardAppointment]
@@ -368,17 +404,49 @@ class DashboardResponse(BaseModel):
             "example": {
                 "success": True,
                 "data": {
-                    "fname": "John",
-                    "lname": "Doe",
+                    "fname": "สมชาย",
+                    "lname": "รักสัตว์",
+                    "profile_image": "https://profile.line-scdn.net/...",
                     "pets": [
                         {
-                            "pet_id": "2",
+                            "pet_id": 1,
                             "name": "Lucky",
-                            "profile_image": "https://example.com/image.jpg"
+                            "species": "Dog",
+                            "breed": "Golden Retriever",
+                            "in_medical": False,
+                            "profile_image": "https://example.com/lucky.jpg"
                         }
                     ],
-                    "medicines_notifications": [],
-                    "appointments": []
+                    "medicines_notifications": [
+                        {
+                            "notification_id": 1,
+                            "title": "Time to give Amoxicillin to Lucky",
+                            "medicine_id": 1,
+                            "medicine_name": "Amoxicillin",
+                            "dosage": "2 tablets",
+                            "frequency": "-1",
+                            "reminder_time": ["08:00"],
+                            "time_per_day": 1,
+                            "pet_id": 1,
+                            "pet_name": "Lucky",
+                            "pet_image": "https://example.com/lucky.jpg",
+                            "notification_at": "2026-02-08T08:00:00",
+                            "istaken": False
+                        }
+                    ],
+                    "appointments": [
+                        {
+                            "appointment_id": 1,
+                            "pet_id": 1,
+                            "pet_name": "Lucky",
+                            "pet_image": "https://example.com/lucky.jpg",
+                            "location": "โรงพยาบาลสัตว์ ABC",
+                            "appointment_date": "2026-02-15",
+                            "appointment_time": "14:00",
+                            "status": "Upcoming",
+                            "note": "ตรวจสุขภาพประจำปี"
+                        }
+                    ]
                 }
             }
         }
@@ -427,15 +495,15 @@ class UserProfileData(BaseModel):
     fname: str
     lname: str
     line_id: str
-    profile_image: Optional[str]
+    profile_image: Optional[str] = None
     
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "user_id": 10,
-                "fname": "John",
-                "lname": "Doe",
-                "line_id": "U1234567890",
+                "user_id": 2,
+                "fname": "สมชาย",
+                "lname": "รักสัตว์",
+                "line_id": "U1234567890abcdef",
                 "profile_image": "https://profile.line-scdn.net/..."
             }
         }

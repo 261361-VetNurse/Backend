@@ -41,7 +41,6 @@ class Settings(BaseSettings):
     R2_PUBLIC_URL: str = ""  # Add to .env file (e.g., https://pub-xxxxx.r2.dev)   
 
 
-    # ฟังก์ชันช่วยโหลดไฟล์ Private Key
     @property
     def PRIVATE_KEY(self) -> str:
         try:
