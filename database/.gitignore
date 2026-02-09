@@ -1,5 +1,5 @@
 # Environment variables (contains sensitive data)
-.env
+#.env
 
 # Database backups
 *.sql.gz
