@@ -38,6 +38,7 @@ CREATE TABLE users (
     -- User Information
     fname VARCHAR(255) NOT NULL,
     lname VARCHAR(255) NOT NULL,
+    gender VARCHAR(20),
     role VARCHAR(50) DEFAULT 'owner',
     is_registered BOOLEAN DEFAULT FALSE,
     is_deleted BOOLEAN DEFAULT FALSE,

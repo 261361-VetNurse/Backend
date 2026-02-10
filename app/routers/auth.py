@@ -49,7 +49,7 @@ class AuthResponse(BaseModel):
 class UserProfileResponse(BaseModel):
     id: int
     display_name: str
-    picture_url: str
+    picture_url: str | None
     role: str
     is_registered: bool
     

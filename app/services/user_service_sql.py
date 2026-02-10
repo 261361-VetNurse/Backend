@@ -72,12 +72,13 @@ async def get_user_profile(session: AsyncSession, user_id: int) -> Optional[Dict
     
     # Convert to dict
     profile = {
-        "user_id": user.user_id,
+        "user_id": str(user.user_id),
         "line_id": user.line_id,
         "display_name": user.display_name,
         "picture_url": user.picture_url,
         "fname": user.fname,
         "lname": user.lname,
+        "gender": user.gender,
         "phone": user.phone,
         "email": user.email,
         "address_line1": user.address_line1,
