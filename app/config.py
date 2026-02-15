@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     CHANNEL_ID: str
     KEY_ID: str
     
+    # --- Google Gemini API ---
+    GOOGLE_API_KEY: str 
+    class Config:
+        env_file = ".env"
+    
     # --- LINE Login ---
     LOGIN_CLIENT_ID: str
     LOGIN_CLIENT_SECRET: str
