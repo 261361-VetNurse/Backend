@@ -40,10 +40,22 @@ class ErrorResponse(BaseModel):
 class NotificationItem(BaseModel):
     """Individual notification in list"""
     notification_id: int = Field(..., description="Notification ID")
-    title: str = Field(..., description="Notification title")
     notification_at: str = Field(..., description="Notification time (ISO format)")
     istaken: bool = Field(..., description="Whether medicine was taken")
     pet_id: int = Field(..., description="Pet ID")
+    
+    # Additional fields for frontend
+    pet_name: Optional[str] = Field(None, description="Pet name")
+    pet_image: Optional[str] = Field(None, description="Pet profile image URL")
+    medicine_id: Optional[int] = Field(None, description="Medicine ID")
+    medicine_name: Optional[str] = Field(None, description="Medicine name")
+    dosage: Optional[str] = Field(None, description="Medicine dosage")
+    medicine_frequency: Optional[str] = Field(None, description="Medicine frequency")
+    reminder_time: Optional[List[str]] = Field(default_factory=list, description="Reminder times")
+    user_id: Optional[str] = Field(None, description="User ID")
+    status: Optional[str] = Field(None, description="Medicine status")
+    created_at: Optional[str] = Field(None, description="Creation timestamp")
+    updated_at: Optional[str] = Field(None, description="Update timestamp")
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -52,7 +64,13 @@ class NotificationItem(BaseModel):
                 "title": "Time to give Amoxicillin to Lucky",
                 "notification_at": "2026-02-08T08:00:00",
                 "istaken": False,
-                "pet_id": 1
+                "pet_id": 1,
+                "pet_name": "Lucky",
+                "pet_image": "https://example.com/lucky.jpg",
+                "medicine_id": 1,
+                "medicine_name": "Amoxicillin",
+                "dosage": "250mg",
+                "reminder_time": ["08:00", "20:00"]
             }
         }
     )

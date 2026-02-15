@@ -20,6 +20,7 @@ class User(Base):
     # User Information
     fname = Column(String(255), nullable=False)
     lname = Column(String(255), nullable=False)
+    gender = Column(String(20))
     role = Column(String(50), default='owner')
     is_registered = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False, index=True)

@@ -79,13 +79,15 @@ async def list_medications(
         conditions.append(MedicineNotification.notification_at >= start_datetime)
         conditions.append(MedicineNotification.notification_at <= end_datetime)
         
-        # Execute query
+        # Execute query with joins to get pet and medicine details
         result = await session.execute(
-            select(MedicineNotification)
+            select(MedicineNotification, Pet, Medicine)
+            .join(Pet, MedicineNotification.pet_id == Pet.pet_id)
+            .join(Medicine, MedicineNotification.medicine_id == Medicine.medicine_id)
             .where(and_(*conditions))
             .order_by(MedicineNotification.notification_at.asc())
         )
-        notifications = result.scalars().all()
+        rows = result.all()
         
         return {
             "success": True,
@@ -93,12 +95,19 @@ async def list_medications(
                 {
                     "_id": notif.notification_id,
                     "notification_id": notif.notification_id,
-                    "title": notif.title,
                     "notification_at": notif.notification_at.isoformat(),
                     "istaken": notif.istaken,
                     "pet_id": notif.pet_id,
+                    "medicine_id": notif.medicine_id,
+                    "pet_name": pet.name if pet else "",
+                    "pet_image": pet.profile_image if pet else "",
+                    "medicine_name": medicine.name if medicine else "",
+                    "dosage": medicine.dosage if medicine else "",
+                    "reminder_time": medicine.reminder_time if medicine else [],
+                    "created_at": notif.created_at.isoformat() if notif.created_at else "",
+                    "updated_at": notif.updated_at.isoformat() if notif.updated_at else "",
                 }
-                for notif in notifications
+                for notif, pet, medicine in rows
             ]
         }
         

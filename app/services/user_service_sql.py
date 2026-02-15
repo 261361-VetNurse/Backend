@@ -78,6 +78,7 @@ async def get_user_profile(session: AsyncSession, user_id: int) -> Optional[Dict
         "picture_url": user.picture_url,
         "fname": user.fname,
         "lname": user.lname,
+        "gender": user.gender,
         "phone": user.phone,
         "email": user.email,
         "address_line1": user.address_line1,

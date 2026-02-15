@@ -20,6 +20,10 @@ class UserProfileUpdate(BaseModel):
     """Schema for updating user profile"""
     display_name: Optional[str] = None
     picture_url: Optional[str] = None
+    fname: Optional[str] = None
+    lname: Optional[str] = None
+    gender: Optional[str] = None
+    line_id: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     address: Optional[str] = None
@@ -28,6 +32,8 @@ class UserProfileUpdate(BaseModel):
         json_schema_extra={
             "example": {
                 "display_name": "สมชาย ใจดี",
+                "fname": "สมชาย",
+                "lname": "ใจดี",
                 "phone": "0812345678",
                 "email": "somchai@example.com",
                 "address": "123 ถนนสุขุมวิท กรุงเทพฯ"
