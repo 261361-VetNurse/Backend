@@ -34,6 +34,19 @@ async def get_admin_token():
 
 
 async def exchange_user_token(code: str):
+    # --- MOCK LOGIN MODE ---
+    if settings.MOCK_LINE_LOGIN_ENABLED and code == settings.MOCK_LINE_CODE:
+        print(f"⚠️ [MOCK LOGIN] Using mock token for code: {code}")
+        # Return a structure that mimics LINE's response
+        return {
+            "access_token": "mock_access_token_12345",
+            "token_type": "Bearer",
+            "expires_in": 2592000,
+            "scope": "profile openid",
+            "id_token": "mock_id_token"
+        }
+    # -----------------------
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://api.line.me/oauth2/v2.1/token",
@@ -49,6 +62,17 @@ async def exchange_user_token(code: str):
 
 
 async def get_user_profile(access_token: str):
+    # --- MOCK PROFILE ---
+    if access_token == "mock_access_token_12345":
+        print("⚠️ [MOCK LOGIN] Returning mock user profile")
+        return {
+            "userId": "mock_line_user_id_999",
+            "displayName": "Mock User (Dev)",
+            "pictureUrl": "",
+            "statusMessage": "Testing Mode"
+        }
+    # --------------------
+
     async with httpx.AsyncClient() as client:
         response = await client.get(
             "https://api.line.me/v2/profile",

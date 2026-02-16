@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 from app.services import line_service
 from app.config import settings
 from app.database_sql import get_session
-from app.services.auth_service_sql import upsert_user_from_line, create_access_token, get_user_by_id
+from app.services.auth_service_sql import upsert_user_from_line, create_access_token, get_user_by_id, save_jwt_token
 from app.services.auth_dependency_sql import get_current_user
 
 
@@ -108,6 +108,9 @@ async def line_exchange(
     user, is_new_user = await upsert_user_from_line(session, profile)
 
     access_token = create_access_token(user.user_id)
+    
+    # Save token to database (Required for dashboard access)
+    await save_jwt_token(session, user.user_id, access_token)
 
     return {
         "access_token": access_token,

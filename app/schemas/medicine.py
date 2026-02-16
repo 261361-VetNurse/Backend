@@ -46,6 +46,7 @@ class MedicineCreate(MedicineBase):
 class MedicineUpdate(BaseModel):
     """Schema for updating a Medicine (Partial updates allowed)"""
     name: Optional[str] = None
+    notes: Optional[List[str]] = Field(None, description="Array of notes (replaces existing)")
     note: Optional[str] = Field(None, description="New note to add (used when status changes)")
     properties: Optional[str] = None
     image_urls: Optional[List[str]] = None

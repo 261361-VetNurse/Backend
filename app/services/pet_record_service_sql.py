@@ -19,7 +19,9 @@ class PetRecordServiceSQL:
         session: AsyncSession,
         pet_id: int,
         note: str,
-        note_image: Optional[List[str]] = None
+        note_image: Optional[List[str]] = None,
+        date_added: Optional[str] = None,
+        time_added: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create a new pet record
@@ -29,6 +31,8 @@ class PetRecordServiceSQL:
             pet_id: Pet ID
             note: Record note/description
             note_image: Optional array of image URLs (max 4)
+            date_added: Optional date (YYYY-MM-DD)
+            time_added: Optional time (HH:MM)
             
         Returns:
             Dict with success status and record_id
@@ -46,10 +50,30 @@ class PetRecordServiceSQL:
         images = note_image[:4] if note_image else []
         
         # Create record
+        created_at = None
+        if date_added or time_added:
+            dt = datetime.now()
+            new_date = dt.date()
+            if date_added:
+                try:
+                    new_date = datetime.strptime(date_added, "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+            
+            new_time = dt.time()
+            if time_added:
+                try:
+                    new_time = datetime.strptime(time_added, "%H:%M").time()
+                except ValueError:
+                    pass
+            
+            created_at = datetime.combine(new_date, new_time)
+
         record = PetRecord(
             pet_id=pet_id,
             note=note,
-            images=images
+            images=images,
+            created_at=created_at
         )
         
         session.add(record)
@@ -199,6 +223,26 @@ class PetRecordServiceSQL:
         if "note_image" in update_data and update_data["note_image"] is not None:
             # Limit to 4 images
             record.images = update_data["note_image"][:4]
+            
+        # Update date/time if provided
+        if "date_added" in update_data or "time_added" in update_data:
+            current_dt = record.created_at or datetime.now()
+            
+            new_date = current_dt.date()
+            if "date_added" in update_data and update_data["date_added"]:
+                try:
+                    new_date = datetime.strptime(update_data["date_added"], "%Y-%m-%d").date()
+                except ValueError:
+                    pass # Keep original date if format error
+            
+            new_time = current_dt.time()
+            if "time_added" in update_data and update_data["time_added"]:
+                try:
+                    new_time = datetime.strptime(update_data["time_added"], "%H:%M").time()
+                except ValueError:
+                    pass # Keep original time if format error
+            
+            record.created_at = datetime.combine(new_date, new_time)
         
         await session.commit()
         await session.refresh(record)

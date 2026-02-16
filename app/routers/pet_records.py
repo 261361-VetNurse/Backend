@@ -172,7 +172,9 @@ async def create_record(
         session,
         record_data.pet_id,
         record_data.note,
-        record_data.note_image
+        record_data.note_image,
+        record_data.date_added,
+        record_data.time_added
     )
     
     if not result["success"]:
