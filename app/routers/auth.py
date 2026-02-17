@@ -92,7 +92,7 @@ async def get_me(
     }
 
 
-@router.post("/auth/line/exchange", response_model=AuthResponse, summary="LINE Login", description="Exchange LINE authorization code for access token")
+@router.post("/line/exchange", response_model=AuthResponse, summary="LINE Login", description="Exchange LINE authorization code for access token")
 async def line_exchange(
     payload: LineExchangeRequest,
     session: AsyncSession = Depends(get_session)
