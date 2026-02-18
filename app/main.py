@@ -8,6 +8,7 @@ from app.routers import auth, register, pets, dashboard_home, upload, user_profi
 from app.routers.appointments_sql import router as appointments_router
 from app.routers.medications_sql import router as medications_router
 from app.routers.pet_records import router as pet_records_router
+from app.routers.notifications_sql import router as notifications_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -83,6 +84,7 @@ app.include_router(register.router, prefix="/v1/register")
 app.include_router(appointments_router, prefix="/v1/appointments")
 app.include_router(pets.router, prefix="/v1/pets")
 app.include_router(medications_router, prefix="/v1/medications")
+app.include_router(notifications_router, prefix="/v1/notifications")
 app.include_router(pet_records_router)
 app.include_router(dashboard_home.router)
 app.include_router(upload.router)
