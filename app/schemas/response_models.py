@@ -82,6 +82,7 @@ class ReminderSlot(BaseModel):
     notification_id: int
     time: str
     status: str # "taken", "pending", "missed"
+    taken_at: Optional[str] = None
 
 class GroupedMedicineNotification(BaseModel):
     """Grouped medicine notification"""

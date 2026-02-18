@@ -118,11 +118,15 @@ async def list_medications(
             # Extract time from notification_at
             time_str = notif.notification_at.strftime("%H:%M")
             
+            # Get taken_at timestamp (updated_at when istaken=true)
+            taken_at_str = notif.updated_at.isoformat() if notif.istaken and notif.updated_at else None
+
             grouped_data[key]["reminders"].append(
                 ReminderSlot(
                     notification_id=notif.notification_id,
                     time=time_str,
-                    status=status_str
+                    status=status_str,
+                    taken_at=taken_at_str
                 )
             )
             
