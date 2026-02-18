@@ -34,6 +34,21 @@ async def get_admin_token():
 
 
 async def exchange_user_token(code: str):
+    # --- MOCK LOGIN MODE ---
+    # Support any code starting with "DEV_" as a mock user
+    if settings.MOCK_LINE_LOGIN_ENABLED and code.startswith("DEV_"):
+        print(f"⚠️ [MOCK LOGIN] Using mock token for code: {code}")
+        # Return a structure that mimics LINE's response
+        # Use a unique token per code so we can identify it later
+        return {
+            "access_token": f"mock_token_{code}",
+            "token_type": "Bearer",
+            "expires_in": 2592000,
+            "scope": "profile openid",
+            "id_token": "mock_id_token"
+        }
+    # -----------------------
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://api.line.me/oauth2/v2.1/token",
@@ -49,6 +64,20 @@ async def exchange_user_token(code: str):
 
 
 async def get_user_profile(access_token: str):
+    # --- MOCK PROFILE ---
+    # Handle any mock token (format: "mock_token_DEV_...")
+    if access_token.startswith("mock_token_DEV_"):
+        # Extract the original code from the token
+        code = access_token.replace("mock_token_", "")
+        print(f"⚠️ [MOCK LOGIN] Returning mock user profile for code: {code}")
+        return {
+            "userId": code,  # Use code as unique line_id
+            "displayName": f"Mock User ({code})",
+            "pictureUrl": "",
+            "statusMessage": "Testing Mode"
+        }
+    # --------------------
+
     async with httpx.AsyncClient() as client:
         response = await client.get(
             "https://api.line.me/v2/profile",

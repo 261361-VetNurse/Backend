@@ -12,6 +12,8 @@ class PetRecordCreate(BaseModel):
     pet_id: int = Field(..., description="Pet ID", example=1)
     note: str = Field(..., description="Health or behavior note", example="พบว่าสัตว์เลี้ยงมีอาการเบื่ออาหาร")
     note_image: Optional[List[str]] = Field(default=[], description="Array of image URLs (max 4)", max_length=4, example=["https://example.com/image1.jpg"])
+    date_added: Optional[str] = Field(None, description="Date (YYYY-MM-DD)", example="2026-02-08")
+    time_added: Optional[str] = Field(None, description="Time (HH:MM)", example="14:30")
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -31,6 +33,8 @@ class PetRecordUpdate(BaseModel):
     """Schema for updating pet record"""
     note: Optional[str] = Field(None, description="Updated note", example="อาการดีขึ้นหลังให้ยา")
     note_image: Optional[List[str]] = Field(None, description="Updated image URLs (max 4)", max_length=4)
+    date_added: Optional[str] = Field(None, description="Updated date (YYYY-MM-DD)", example="2026-02-08")
+    time_added: Optional[str] = Field(None, description="Updated time (HH:MM)", example="14:30")
     
     model_config = ConfigDict(
         json_schema_extra={

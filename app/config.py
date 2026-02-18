@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     LOGIN_CLIENT_ID: str
     LOGIN_CLIENT_SECRET: str
     REDIRECT_URI: str = "http://localhost:8000/auth/callback"
+    
+    # --- Mock Login (High Priority for Dev) ---
+    MOCK_LINE_LOGIN_ENABLED: bool = True
+    MOCK_LINE_CODE: str = "DEV_TEST_CODE"
 
     # --- VetNurse JWT (for Backend Auth) ---
     JWT_SECRET: str = "vetnurse-secret-key"

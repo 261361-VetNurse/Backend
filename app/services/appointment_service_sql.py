@@ -250,6 +250,7 @@ class AppointmentServiceSQL:
         """Get appointment by ID"""
         result = await session.execute(
             select(Appointment)
+            .options(selectinload(Appointment.pet))
             .where(and_(Appointment.appointment_id == appointment_id, Appointment.is_deleted == False))
         )
         return result.scalar_one_or_none()

@@ -14,7 +14,7 @@ from app.services.medicine_service_sql import MedicineServiceSQL
 from app.models_sql.medicine_model import Medicine, MedicineNotification
 from app.models_sql.pet_model import Pet
 from app.schemas.medicine import MedicineCreate, MedicineUpdate
-from app.schemas.response_models import NotificationListResponse, SuccessResponse
+from app.schemas.response_models import NotificationListResponse, SuccessResponse, GroupedMedicineNotification, ReminderSlot
 
 router = APIRouter(tags=["Medications"])
 
@@ -89,30 +89,53 @@ async def list_medications(
         )
         rows = result.all()
         
+        # Grouping Logic
+        grouped_data = {}
+        
+        for notif, pet, medicine in rows:
+            key = (notif.medicine_id, notif.pet_id)
+            
+            if key not in grouped_data:
+                grouped_data[key] = {
+                    "medicine_id": notif.medicine_id,
+                    "pet_id": notif.pet_id,
+                    "pet_name": pet.name if pet else "",
+                    "pet_image": pet.profile_image if pet else None,
+                    "medicine_name": medicine.name if medicine else "",
+                    "dosage": medicine.dosage if medicine else None,
+                    "frequency": medicine.frequency if medicine else None,
+                    "reminder_time": medicine.reminder_time if medicine else [],
+                    "start_date": medicine.start_date.isoformat() if medicine and medicine.start_date else None,
+                    "end_date": medicine.end_date.isoformat() if medicine and medicine.end_date else None,
+                    "reminders": []
+                }
+            
+            # Determine status
+            status_str = "pending"
+            if notif.istaken:
+                status_str = "taken"
+            
+            # Extract time from notification_at
+            time_str = notif.notification_at.strftime("%H:%M")
+            
+            # Get taken_at timestamp (updated_at when istaken=true)
+            taken_at_str = notif.updated_at.isoformat() if notif.istaken and notif.updated_at else None
+
+            grouped_data[key]["reminders"].append(
+                ReminderSlot(
+                    notification_id=notif.notification_id,
+                    time=time_str,
+                    status=status_str,
+                    taken_at=taken_at_str
+                )
+            )
+            
+        # Convert to list
+        response_data = [GroupedMedicineNotification(**data) for data in grouped_data.values()]
+        
         return {
             "success": True,
-            "data": [
-                {
-                    "_id": str(notif.notification_id),
-                    "notification_id": notif.notification_id,
-                    "title": notif.title,
-                    "notification_at": notif.notification_at.isoformat(),
-                    "istaken": notif.istaken,
-                    "pet_id": str(notif.pet_id),
-                    "user_id": str(notif.user_id),
-                    "medicine_id": str(notif.medicine_id),
-                    "pet_name": pet.name if pet else "",
-                    "pet_image": pet.profile_image if pet else "",
-                    "medicine_name": medicine.name if medicine else "",
-                    "dosage": medicine.dosage if medicine else "",
-                    "medicine_frequency": medicine.frequency if medicine else "",
-                    "reminder_time": medicine.reminder_time if medicine else [],
-                    "status": medicine.status if medicine else "TAKE",
-                    "created_at": notif.created_at.isoformat() if notif.created_at else "",
-                    "updated_at": notif.updated_at.isoformat() if notif.updated_at else "",
-                }
-                for notif, pet, medicine in rows
-            ]
+            "data": response_data
         }
         
     except HTTPException:
@@ -206,6 +229,9 @@ async def get_notification_detail(
             "medicine_name": medicine.name if medicine else None,
             "dosage": medicine.dosage if medicine else None,
             "frequency": medicine.frequency if medicine else None,
+            "start_date": medicine.start_date.isoformat() if medicine and medicine.start_date else None,
+            "end_date": medicine.end_date.isoformat() if medicine and medicine.end_date else None,
+            "notes": medicine.notes if medicine and medicine.notes else [],
             "reminder_time": medicine.reminder_time if medicine else [],
             "time_per_day": time_per_day
         }

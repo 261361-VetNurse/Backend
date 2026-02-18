@@ -2,7 +2,7 @@
 Response Models for API Documentation (Swagger/OpenAPI)
 """
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
 
 
 # === Base Response Models ===
@@ -40,7 +40,6 @@ class ErrorResponse(BaseModel):
 class NotificationItem(BaseModel):
     """Individual notification in list"""
     notification_id: int = Field(..., description="Notification ID")
-    title: str = Field(..., description="Notification title")
     notification_at: str = Field(..., description="Notification time (ISO format)")
     istaken: bool = Field(..., description="Whether medicine was taken")
     pet_id: int = Field(..., description="Pet ID")
@@ -77,10 +76,33 @@ class NotificationItem(BaseModel):
     )
 
 
+
+class ReminderSlot(BaseModel):
+    """Individual reminder slot"""
+    notification_id: int
+    time: str
+    status: str # "taken", "pending", "missed"
+    taken_at: Optional[str] = None
+
+class GroupedMedicineNotification(BaseModel):
+    """Grouped medicine notification"""
+    medicine_id: int
+    pet_id: int
+    pet_name: str
+    pet_image: Optional[str] = None
+    medicine_name: str
+    dosage: Optional[str] = None
+    frequency: Optional[str] = None
+    reminder_time: List[str] = []
+    reminders: List[ReminderSlot]
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    note: Optional[str] = None
+
 class NotificationListResponse(BaseModel):
     """Response for GET /v1/medications"""
     success: bool = True
-    data: List[NotificationItem]
+    data: List[GroupedMedicineNotification]
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -88,11 +110,24 @@ class NotificationListResponse(BaseModel):
                 "success": True,
                 "data": [
                     {
-                        "notification_id": 1,
-                        "title": "Time to give Amoxicillin to Lucky",
-                        "notification_at": "2026-02-08T08:00:00",
-                        "istaken": False,
-                        "pet_id": 1
+                        "medicine_id": 1,
+                        "pet_id": 1,
+                        "pet_name": "Lucky",
+                        "pet_image": "https://example.com/lucky.jpg",
+                        "medicine_name": "Amoxicillin",
+                        "dosage": "2 tablets",
+                        "reminders": [
+                            {
+                                "notification_id": 1,
+                                "time": "08:00",
+                                "status": "taken"
+                            },
+                             {
+                                "notification_id": 2,
+                                "time": "20:00",
+                                "status": "pending"
+                            }
+                        ]
                     }
                 ]
             }

@@ -42,7 +42,6 @@ async def list_appointments(
                 "appointment_date": "2026-02-15",
                 "appointment_time": "14:00",
                 "status": "Upcoming",
-                "note": "ตรวจสุขภาพประจำปี"
             }
         ]
     }
@@ -91,7 +90,6 @@ async def list_appointments(
                 "appointment_date": appointment_date_str,
                 "appointment_time": appointment_time_str,
                 "status": appt.status,
-                "note": appt.note or ""
             })
         
         return {"success": True, "data": data}
@@ -146,6 +144,8 @@ async def get_appointment_detail(
             "appointment_id": appt.appointment_id,
             "pet_id": appt.pet_id,
             "user_id": appt.user_id,
+            "pet_name": appt.pet.name if appt.pet else "",
+            "pet_image": appt.pet.profile_image if appt.pet else "",
             "location": appt.location,
             "appointment_date": appt.appointment_date.isoformat() if appt.appointment_date else None,
             "status": appt.status,
