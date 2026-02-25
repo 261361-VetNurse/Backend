@@ -1,0 +1,54 @@
+services:
+  db:
+    image: mysql:8.0
+    env_file:
+      - ./database/.env
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./database/mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - vetnurse_net
+    env_file:
+      - ./database/.env
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: "3306"
+    restart: unless-stopped
+
+  check-db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "check_db_connection.py"]
+    env_file:
+      - ./database/.env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - vetnurse_net
+    restart: "no"
+
+volumes: {}
+
+networks:
+  vetnurse_net:
+    driver: bridge

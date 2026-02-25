@@ -1,0 +1,23 @@
+# Exclude MySQL runtime data (socket files) and other build artifacts
+database/mysql_data/
+database/*.sock
+
+# Python cache and environments
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+env/
+venv/
+.venv/
+
+# Git and docker metadata
+.git
+.gitignore
+.dockerignore
+
+# Node
+node_modules/
+
+# Logs
+*.log
