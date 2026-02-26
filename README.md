@@ -44,6 +44,8 @@ python -m pip install --upgrade pip
 
 ```bash
 pip install -r requirements.txt
+# หรือติดตั้ง library สำหรับ Gemini โดยเฉพาะ
+pip install google-genai
 ```
 
 ## ▶️ Run FastAPI
@@ -111,6 +113,10 @@ MYSQL_DATABASE=pet_medic_db
 
 # JWT
 JWT_SECRET=vetnurse-secret-key
+
+# Google Gemini API (Get from Google AI Studio)
+GOOGLE_API_KEY=your_gemini_api_key_here
+
 ```
 
 ## 🗄️ Database Setup

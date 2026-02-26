@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Response, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from app.services import line_service
 from app.config import settings
@@ -13,7 +13,7 @@ router = APIRouter(tags=["Authentication"])
 
 class LineExchangeRequest(BaseModel):
     code: str
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -28,7 +28,7 @@ class AuthResponse(BaseModel):
     token_type: str
     is_new_user: bool
     user: dict
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -52,7 +52,7 @@ class UserProfileResponse(BaseModel):
     picture_url: str | None
     role: str
     is_registered: bool
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -108,7 +108,7 @@ async def line_exchange(
     user, is_new_user = await upsert_user_from_line(session, profile)
 
     access_token = create_access_token(user.user_id)
-    
+
     # Save token to database (Required for dashboard access)
     await save_jwt_token(session, user.user_id, access_token)
 
@@ -124,4 +124,33 @@ async def line_exchange(
         }
     }
 
- 
+
+# เพิ่มใน app/routers/auth.py
+@router.get("/callback", tags=["Authentication 🔐"])
+async def line_callback(code: str, state: str = None, session: AsyncSession = Depends(get_session)):
+    """ฟังก์ชันสำหรับทดสอบ: รับ code แล้วแลก token ให้ดูหน้าจอเลย"""
+    try:
+        token_data = await line_service.exchange_user_token(code)
+        if "access_token" not in token_data:
+            return {"error": "Invalid code", "details": token_data}
+
+        profile = await line_service.get_user_profile(token_data["access_token"])
+
+        user, is_new_user = await upsert_user_from_line(session, profile)
+
+        access_token = create_access_token(user.user_id)
+
+        return {
+            "status": "success",
+            "message": "Backend Test Successful",
+            "access_token": access_token,
+            "is_new_user": is_new_user,
+            "user_data_in_sql": {
+                "id": user.user_id,
+                "display_name": user.display_name,
+                "line_id": user.line_id
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+

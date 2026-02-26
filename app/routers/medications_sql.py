@@ -8,6 +8,8 @@ from datetime import datetime, date as date_type
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import APIRouter, File, UploadFile
+from app.services.ocr_service import scan_medication_label
 from app.database_sql import get_session
 from app.services.auth_dependency_sql import get_current_user
 from app.services.medicine_service_sql import MedicineServiceSQL
@@ -17,6 +19,8 @@ from app.schemas.medicine import MedicineCreate, MedicineUpdate
 from app.schemas.response_models import NotificationListResponse, SuccessResponse, GroupedMedicineNotification, ReminderSlot
 
 router = APIRouter(tags=["Medications"])
+
+# router = APIRouter(prefix="/v1/medications", tags=["Medications"])
 
 
 @router.get("", response_model=NotificationListResponse)
@@ -557,3 +561,16 @@ async def delete_medicine(
         raise HTTPException(status_code=404, detail="Medicine not found")
     
     return {"success": True, "message": "Medicine deleted"}
+
+
+@router.post("/scan")
+async def scan_label(file: UploadFile = File(...)):
+    mime_type = file.content_type 
+    
+    if not mime_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="ไฟล์ต้องเป็นรูปภาพเท่านั้น")
+        
+    content = await file.read()
+    
+    result = await scan_medication_label(content, mime_type) 
+    return {"status": "success", "data": result}
