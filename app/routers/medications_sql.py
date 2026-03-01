@@ -105,7 +105,7 @@ async def list_medications(
                     "pet_id": notif.pet_id,
                     "pet_name": pet.name if pet else "",
                     "pet_image": pet.profile_image if pet else None,
-                    "medicine_name": medicine.name if medicine else "",
+                    "name": medicine.name if medicine else "",
                     "dosage": medicine.dosage if medicine else None,
                     "frequency": medicine.frequency if medicine else None,
                     "reminder_time": medicine.reminder_time if medicine else [],
@@ -179,7 +179,7 @@ async def get_notification_detail(
             "pet_name": "Lucky",
             "pet_image": "https://example.com/lucky.jpg",
             "medicine_id": 1,
-            "medicine_name": "Amoxicillin",
+            "name": "Amoxicillin",
             "dosage": "2 tablets",
             "frequency": "-1",
             "reminder_time": ["08:00", "20:00"],
@@ -230,7 +230,7 @@ async def get_notification_detail(
             "pet_name": pet.name if pet else None,
             "pet_image": pet.profile_image if pet else "",
             "medicine_id": notification.medicine_id,
-            "medicine_name": medicine.name if medicine else None,
+            "name": medicine.name if medicine else None,
             "dosage": medicine.dosage if medicine else None,
             "frequency": medicine.frequency if medicine else None,
             "start_date": medicine.start_date.isoformat() if medicine and medicine.start_date else None,
@@ -386,7 +386,7 @@ async def filter_medicines_by_pet(
         "data": [
             {
                 "medicine_id": 1,
-                "medicine_name": "Amoxicillin",
+                "name": "Amoxicillin",
                 "medicine_dosage": "1 tablet",
                 "medicine_frequency": "-1",
                 "pet_name": "Lucky",
@@ -421,7 +421,7 @@ async def filter_medicines_by_pet(
         "data": [
             {
                 "medicine_id": med.medicine_id,
-                "medicine_name": med.name,
+                "name": med.name,
                 "medicine_dosage": med.dosage if med.dosage else "",
                 "medicine_frequency": med.frequency,
                 "pet_name": pet.name,
@@ -572,8 +572,20 @@ async def scan_label(file: UploadFile = File(...)):
         
     content = await file.read()
     
-    result = await scan_medication_label(content, mime_type) 
-    return {"status": "success", "data": result}
+    raw_result = await scan_medication_label(content, mime_type) 
+
+    reminder_times, freq = MedicineServiceSQL.analyze_reminder_logic(raw_result.get("instruction", ""))
+    
+    final_data = {
+        "name": raw_result.get("medicine_name"), 
+        "dosage": raw_result.get("dosage"),
+        "properties": raw_result.get("instruction"), 
+        "frequency": freq,    
+        "reminder_time": reminder_times, 
+        "caution": raw_result.get("caution", "")
+    }
+    
+    return {"status": "success", "data": final_data}
 
 
 # @router.post("/test-logic")

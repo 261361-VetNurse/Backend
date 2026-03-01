@@ -360,8 +360,17 @@ class MedicineServiceSQL:
 
         instruction = medicine_data.get("properties", "")
         final_reminders = medicine_data.get("reminder_time")
+        final_frequency = medicine_data.get("frequency") 
+
+
         if not final_reminders or len(final_reminders) == 0:
-            final_reminders = MedicineServiceSQL.analyze_reminder_logic(instruction)
+            final_reminders, analyzed_freq = MedicineServiceSQL.analyze_reminder_logic(instruction)
+            
+            if not final_frequency:
+                final_frequency = analyzed_freq
+
+        if not final_frequency:
+            final_frequency = "1"
 
         medicine = Medicine(
             pet_id=pet_id,
@@ -369,7 +378,7 @@ class MedicineServiceSQL:
             name=medicine_data["name"],
             properties=instruction,
             dosage=medicine_data.get("dosage"),
-            frequency=medicine_data.get("frequency", "1"),
+            frequency=final_frequency, 
             status='TAKE',
             reminder_time=final_reminders, 
             start_date=medicine_data["start_date"],
@@ -432,28 +441,22 @@ class MedicineServiceSQL:
         return result.rowcount > 0
     
     @staticmethod
-    def analyze_reminder_logic(instruction: str) -> List[str]:
-        """
-        วิเคราะห์ข้อความจากซองยา: 
-        ถ้ากินวันละครั้งแต่ไม่ระบุเวลาให้ Default เป็น 07:00
-        """
+    def analyze_reminder_logic(instruction: str):
         text = instruction or ""
         reminder_times = []
+        
+        if "เช้า" in text: reminder_times.append("07:00")
+        if "กลางวัน" in text: reminder_times.append("12:00")
+        if "เย็น" in text: reminder_times.append("18:00")
+        if "ก่อนนอน" in text: reminder_times.append("21:00")
 
-        #เช็คคำระบุช่วงเวลามาตรฐาน
-        if "เช้า" in text:
-            reminder_times.append("07:00")
-        if "กลางวัน" in text:
-            reminder_times.append("12:00")
-        if "เย็น" in text:
-            reminder_times.append("18:00")
-        if "ก่อนนอน" in text:
-            reminder_times.append("21:00")
-
-        # ถ้าไม่มีการระบุช่วงเวลา (เช้า/เย็น ฯลฯ) แต่เป็นยาที่กินวันละครั้ง
+        # Logic: ถ้ากินวันละครั้ง/ทุกวัน แต่ไม่ระบุช่วงเวลา -> Default 07:00
         if not reminder_times:
-            # ครอบคลุม "วันละครั้ง", "วันละ 1 ครั้ง" หรือกรณีที่สแกนไม่เจอช่วงเวลาชัดเจน
             reminder_times = ["07:00"]
             
-        return reminder_times
-
+        if "ทุกวัน" in text :
+            frequency = "-1"
+        else:
+            frequency = "1" 
+            
+        return reminder_times, frequency
