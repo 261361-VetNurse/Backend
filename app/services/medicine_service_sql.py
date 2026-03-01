@@ -351,36 +351,27 @@ class MedicineServiceSQL:
         pet_id: int,
         medicine_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """
-        Create new medicine and generate initial notifications
-        
-        Args:
-            session: Database session
-            pet_id: Pet ID
-            medicine_data: Medicine data dict
-            
-        Returns:
-            Result dict with medicine_id
-        """
-        # Get pet info
         result = await session.execute(
             select(Pet).where(Pet.pet_id == pet_id)
         )
         pet = result.scalar_one_or_none()
-        
         if not pet:
             return {"success": False, "error": "Pet not found"}
-        
-        # Create medicine (user_id will be auto-populated by trigger)
+
+        instruction = medicine_data.get("properties", "")
+        final_reminders = medicine_data.get("reminder_time")
+        if not final_reminders or len(final_reminders) == 0:
+            final_reminders = MedicineServiceSQL.analyze_reminder_logic(instruction)
+
         medicine = Medicine(
             pet_id=pet_id,
-            user_id=pet.user_id,  # Set explicitly for Python side
+            user_id=pet.user_id,
             name=medicine_data["name"],
-            properties=medicine_data.get("properties"),
+            properties=instruction,
             dosage=medicine_data.get("dosage"),
-            frequency=medicine_data["frequency"],
+            frequency=medicine_data.get("frequency", "1"),
             status='TAKE',
-            reminder_time=medicine_data["reminder_time"],
+            reminder_time=final_reminders, 
             start_date=medicine_data["start_date"],
             end_date=medicine_data["end_date"],
             notes=medicine_data.get("notes", []),
@@ -392,7 +383,6 @@ class MedicineServiceSQL:
         await session.commit()
         await session.refresh(medicine)
         
-        # Generate notifications
         created_count = await MedicineServiceSQL.generate_notifications(
             session=session,
             medicine_id=medicine.medicine_id,
@@ -440,3 +430,30 @@ class MedicineServiceSQL:
         )
         await session.commit()
         return result.rowcount > 0
+    
+    @staticmethod
+    def analyze_reminder_logic(instruction: str) -> List[str]:
+        """
+        วิเคราะห์ข้อความจากซองยา: 
+        ถ้ากินวันละครั้งแต่ไม่ระบุเวลาให้ Default เป็น 07:00
+        """
+        text = instruction or ""
+        reminder_times = []
+
+        #เช็คคำระบุช่วงเวลามาตรฐาน
+        if "เช้า" in text:
+            reminder_times.append("07:00")
+        if "กลางวัน" in text:
+            reminder_times.append("12:00")
+        if "เย็น" in text:
+            reminder_times.append("18:00")
+        if "ก่อนนอน" in text:
+            reminder_times.append("21:00")
+
+        # ถ้าไม่มีการระบุช่วงเวลา (เช้า/เย็น ฯลฯ) แต่เป็นยาที่กินวันละครั้ง
+        if not reminder_times:
+            # ครอบคลุม "วันละครั้ง", "วันละ 1 ครั้ง" หรือกรณีที่สแกนไม่เจอช่วงเวลาชัดเจน
+            reminder_times = ["07:00"]
+            
+        return reminder_times
+

@@ -574,3 +574,15 @@ async def scan_label(file: UploadFile = File(...)):
     
     result = await scan_medication_label(content, mime_type) 
     return {"status": "success", "data": result}
+
+
+# @router.post("/test-logic")
+# async def test_logic(instruction: str):
+#     from app.services.medicine_service_sql import MedicineServiceSQL
+#     # เรียกใช้ Logic 07:00 ที่เราเขียนไว้
+#     reminder_times = MedicineServiceSQL.analyze_reminder_logic(instruction)
+#     return {
+#         "input_text": instruction,
+#         "reminder_time": reminder_times,
+#         "frequency": "1"
+#     }

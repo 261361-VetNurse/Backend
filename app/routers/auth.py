@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Request, Response, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
-
+from pydantic import BaseModel, ConfigDict
 from app.services import line_service
 from app.config import settings
 from app.database_sql import get_session
