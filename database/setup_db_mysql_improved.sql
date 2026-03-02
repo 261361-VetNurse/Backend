@@ -344,31 +344,18 @@ COMMENT='Health and behavior records for pets (1 Pet : N Records)';
 -- ====================================================================
 
 -- Trigger: Auto-set user_id when inserting medicine
-DELIMITER $$
 CREATE TRIGGER trg_medicines_before_insert
-BEFORE INSERT ON medicines
-FOR EACH ROW
-BEGIN
-    IF NEW.user_id IS NULL OR NEW.user_id = 0 THEN
-        SELECT user_id INTO NEW.user_id
-        FROM pets
-        WHERE pet_id = NEW.pet_id;
-    END IF;
-END$$
+BEFORE INSERT ON medicines FOR EACH ROW
+SET NEW.user_id = IF(NEW.user_id IS NULL OR NEW.user_id = 0,
+    (SELECT user_id FROM pets WHERE pet_id = NEW.pet_id),
+    NEW.user_id);
 
 -- Trigger: Auto-set user_id when inserting appointment
 CREATE TRIGGER trg_appointments_before_insert
-BEFORE INSERT ON appointments
-FOR EACH ROW
-BEGIN
-    IF NEW.user_id IS NULL OR NEW.user_id = 0 THEN
-        SELECT user_id INTO NEW.user_id
-        FROM pets
-        WHERE pet_id = NEW.pet_id;
-    END IF;
-END$$
-
-DELIMITER ;
+BEFORE INSERT ON appointments FOR EACH ROW
+SET NEW.user_id = IF(NEW.user_id IS NULL OR NEW.user_id = 0,
+    (SELECT user_id FROM pets WHERE pet_id = NEW.pet_id),
+    NEW.user_id);
 
 -- ====================================================================
 -- VIEWS FOR COMMON QUERIES

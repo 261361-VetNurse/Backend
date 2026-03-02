@@ -23,4 +23,9 @@ services:
       - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
       - R2_BUCKET_NAME=${R2_BUCKET_NAME}
       - VITE_R2_PUBLIC_URL=${VITE_R2_PUBLIC_URL}
-
+    deploy:
+      resources:
+        limits:
+          memory: 768M # container hard cap (Node heap is 512M inside)
+        reservations:
+          memory: 256M
