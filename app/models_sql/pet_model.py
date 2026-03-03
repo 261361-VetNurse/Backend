@@ -27,6 +27,7 @@ class Pet(Base):
     # Medical Information
     allergies = Column(JSON, comment='Array of allergy strings: ["penicillin", "chicken"]')
     infecund = Column(Boolean, default=False, comment='ทำหมัน/ตอนแล้ว')
+    note = Column(Text, nullable=True, comment='หมายเหตุเพิ่มเติมเกี่ยวกับสัตว์เลี้ยง')
     
     # Media
     profile_image = Column(Text)

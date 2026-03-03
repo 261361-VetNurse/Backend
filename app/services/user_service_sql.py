@@ -239,6 +239,7 @@ async def get_pet_by_id(session: AsyncSession, pet_id: int) -> Optional[Dict]:
         "allergies": pet.allergies,
         "infecund": pet.infecund,
         "in_medical": pet.in_medical,
+        "note": pet.note,
         "profile_image": pet.profile_image,
         "is_verified": pet.is_verified,
         "created_at": pet.created_at.isoformat() if pet.created_at else None,

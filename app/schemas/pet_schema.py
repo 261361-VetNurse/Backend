@@ -19,6 +19,7 @@ class PetUpdateSchema(BaseModel):
     color: Optional[str] = None
     infecund: Optional[bool] = None
     in_medical: Optional[bool] = None
+    note: Optional[str] = None
     
     model_config = ConfigDict(
         json_schema_extra={
