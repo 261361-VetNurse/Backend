@@ -113,6 +113,7 @@ CREATE TABLE pets (
     -- Medical Information
     allergies JSON COMMENT 'Array of allergy strings: ["penicillin", "chicken"]',
     infecund BOOLEAN DEFAULT FALSE COMMENT 'ทำหมัน/ตอนแล้ว',
+    note TEXT COMMENT 'หมายเหตุเพิ่มเติมเกี่ยวกับสัตว์เลี้ยง',
     
     -- Media
     profile_image TEXT,
