@@ -2,7 +2,7 @@
 Medicine Service (SQL Version)
 Business logic for medicine management and notification generation
 """
-from datetime import datetime, timedelta, time as time_obj
+from datetime import datetime, timedelta, time as time_obj, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy import select, update, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -103,7 +103,7 @@ class MedicineServiceSQL:
         frequency_days = MedicineServiceSQL.parse_frequency(frequency)
         
         # Calculate generation window
-        now = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
         generation_end = now + timedelta(days=days_ahead)
         
         # Normalize start_date/end_date to datetime (may be date or datetime)
@@ -182,7 +182,7 @@ class MedicineServiceSQL:
         Returns:
             Number deleted
         """
-        current_time = datetime.utcnow()
+        current_time = datetime.now(timezone.utc).replace(tzinfo=None)
         
         conditions = [
             MedicineNotification.medicine_id == medicine_id,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Response, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, ConfigDict
 
@@ -77,7 +77,7 @@ async def get_me(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """Get current user profile from JWT token"""
+    """Get current user profile from JWT token."""
     user = await get_user_by_id(session, current_user["user_id"])
 
     if not user:
@@ -97,7 +97,7 @@ async def line_exchange(
     payload: LineExchangeRequest,
     session: AsyncSession = Depends(get_session)
 ):
-    """Exchange LINE authorization code for access token"""
+    """Exchange LINE authorization code for a VetNurse JWT access token."""
     token_data = await line_service.exchange_user_token(payload.code)
 
     if "access_token" not in token_data:
@@ -124,4 +124,3 @@ async def line_exchange(
         }
     }
 
- 

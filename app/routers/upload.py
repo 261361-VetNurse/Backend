@@ -6,8 +6,8 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models_sql.base import get_async_session
-from app.services.auth_dependency_sql import get_current_user_sql
+from app.database_sql import get_session
+from app.services.auth_dependency_sql import get_current_user
 
 router = APIRouter(
     prefix="/v1/upload",
@@ -46,8 +46,8 @@ def init_r2_client():
 @router.post("/image", summary="Upload Image", description="Upload image to Cloudflare R2 storage")
 async def upload_image(
     file: UploadFile = File(..., description="Image file (JPEG, PNG, WEBP, max 10MB)"),
-    current_user: dict = Depends(get_current_user_sql),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Upload image to Cloudflare R2 storage
@@ -150,8 +150,8 @@ async def upload_image(
 @router.delete("/image", summary="Delete Image", description="Delete image from Cloudflare R2 storage")
 async def delete_image(
     filename: str,
-    current_user: dict = Depends(get_current_user_sql),
-    session: AsyncSession = Depends(get_async_session)
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
 ):
     """
     Delete image from R2 storage

@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Vet Nurse Backend"
-    APP_VERSION: str = "0.1.0"
+    APP_VERSION: str = "2.0.0"
     
     # Database - MySQL
     MYSQL_HOST: str = "localhost"
@@ -48,7 +48,6 @@ class Settings(BaseSettings):
     @property
     def PRIVATE_KEY(self) -> str:
         try:
-       
             with open("private.key", "r") as f:
                 content = f.read().strip()
                 return content

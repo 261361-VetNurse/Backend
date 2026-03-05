@@ -4,9 +4,12 @@ API Endpoints for Appointment Management
 """
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import Optional
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database_sql import get_session
+from app.models_sql.appointment_model import Appointment
 from app.services.auth_dependency_sql import get_current_user
 from app.services.appointment_service_sql import AppointmentServiceSQL
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
@@ -20,43 +23,13 @@ async def list_appointments(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **GET /v1/appointments - Get Appointments List**
-    
-    Get list of appointments for current user's pets with pet information.
-    
-    **Query Parameters:**
-    - **status** (optional): Filter by status (Upcoming, Completed, Canceled)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "data": [
-            {
-                "appointment_id": 1,
-                "pet_id": 1,
-                "pet_name": "Lucky",
-                "pet_image": "https://example.com/lucky.jpg",
-                "location": "โรงพยาบาลสัตว์ ABC",
-                "appointment_date": "2026-02-15",
-                "appointment_time": "14:00",
-                "status": "Upcoming",
-            }
-        ]
-    }
-    ```
-    """
+    """Get appointments for current user's pets, optionally filtered by status."""
     try:
         if appt_status and appt_status not in ["Upcoming", "Completed", "Canceled"]:
             raise HTTPException(
                 status_code=400,
                 detail="Invalid status"
             )
-        
-        from sqlalchemy import select, and_
-        from sqlalchemy.orm import selectinload
-        from app.models_sql.appointment_model import Appointment
         
         # Query with pet details
         conditions = [
@@ -103,32 +76,7 @@ async def get_appointment_detail(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **GET /v1/appointments/{appointment_id} - Appointment Details**
-    
-    Get detailed information about a specific appointment.
-    
-    **Path Parameters:**
-    - **appointment_id**: Appointment ID (integer)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "data": {
-            "appointment_id": 1,
-            "pet_id": 1,
-            "user_id": 2,
-            "location": "โรงพยาบาลสัตว์ ABC",
-            "appointment_date": "2026-02-15T14:00:00",
-            "status": "Upcoming",
-            "note": "ตรวจสุขภาพประจำปี",
-            "created_at": "2026-02-08T10:00:00",
-            "updated_at": "2026-02-08T10:00:00"
-        }
-    }
-    ```
-    """
+    """Get detailed information about a specific appointment. Returns 403 if not owned by current user."""
     appt = await AppointmentServiceSQL.get_appointment_by_id(session, appointment_id)
     
     if not appt:
@@ -162,31 +110,7 @@ async def create_appointment(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **POST /v1/appointments - Create New Appointment**
-    
-    Create a new appointment. Automatically creates a notification.
-    
-    **Request Body:**
-    ```json
-    {
-        "pet_id": 1,
-        "location": "โรงพยาบาลสัตว์ ABC",
-        "appointment_date": "2026-02-15T14:00:00",
-        "status": "Upcoming",
-        "note": "ตรวจสุขภาพประจำปี"
-    }
-    ```
-    
-    **Response (201):**
-    ```json
-    {
-        "success": true,
-        "message": "Appointment created successfully",
-        "appointment_id": 1
-    }
-    ```
-    """
+    """Create a new appointment and auto-generate a notification."""
     result = await AppointmentServiceSQL.create_appointment_with_notification(
         session,
         current_user["user_id"],
@@ -210,32 +134,7 @@ async def update_appointment(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **PATCH /v1/appointments/{appointment_id} - Update Appointment**
-    
-    Update appointment information. Regenerates notification if date changes.
-    
-    **Path Parameters:**
-    - **appointment_id**: Appointment ID (integer)
-    
-    **Request Body:** (all fields optional)
-    ```json
-    {
-        "location": "โรงพยาบาลสัตว์ XYZ",
-        "appointment_date": "2026-02-16T15:00:00",
-        "note": "อัพเดท: นำบัตรวัคซีนมาด้วย"
-    }
-    ```
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "notification_updated": true,
-        "notification_title_updated": false
-    }
-    ```
-    """
+    """Update appointment fields. Regenerates notification if date or location changes."""
     result = await AppointmentServiceSQL.update_appointment(
         session,
         appointment_id,
@@ -255,22 +154,7 @@ async def cancel_appointment(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **PATCH /v1/appointments/{appointment_id}/cancel - Cancel Appointment**
-    
-    Cancel an appointment. Sets status to 'Canceled'.
-    
-    **Path Parameters:**
-    - **appointment_id**: Appointment ID (integer)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "status": "Canceled"
-    }
-    ```
-    """
+    """Cancel appointment by setting status to 'Canceled'."""
     result = await AppointmentServiceSQL.cancel_appointment(
         session,
         appointment_id,
@@ -289,22 +173,7 @@ async def delete_appointment(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **DELETE /v1/appointments/{appointment_id} - Delete Appointment**
-    
-    Permanently delete an appointment and its notification.
-    
-    **Path Parameters:**
-    - **appointment_id**: Appointment ID (integer)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "message": "Appointment deleted successfully"
-    }
-    ```
-    """
+    """Permanently delete an appointment and its associated notification."""
     success = await AppointmentServiceSQL.delete_appointment(
         session,
         appointment_id,

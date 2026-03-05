@@ -2,7 +2,7 @@
 Appointment Service (SQL Version)
 Handles appointment CRUD operations with automatic notification generation
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy import select, update, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -67,7 +67,7 @@ class AppointmentServiceSQL:
         await session.refresh(appointment)
         
         # Create notification immediately
-        notification_date = datetime.utcnow()
+        notification_date = datetime.now(timezone.utc).replace(tzinfo=None)
         
         notification = AppointmentNotification(
             user_id=user_id,
@@ -148,7 +148,7 @@ class AppointmentServiceSQL:
             if notification:
                 # Update notification_at if date changed
                 if date_changed:
-                    notification.notification_at = datetime.utcnow()
+                    notification.notification_at = datetime.now(timezone.utc).replace(tzinfo=None)
                     response["notification_updated"] = True
                 
                 # Update title if location changed

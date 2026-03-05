@@ -3,9 +3,11 @@ Pet Records Router (Symptom Records)
 API Endpoints for Pet Health and Behavior Records
 """
 from fastapi import APIRouter, HTTPException, status, Depends
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database_sql import get_session
+from app.models_sql.pet_model import Pet
 from app.services.auth_dependency_sql import get_current_user
 from app.services.pet_record_service_sql import PetRecordServiceSQL
 from app.schemas.pet_record_schema import PetRecordCreate, PetRecordUpdate
@@ -21,33 +23,7 @@ async def get_records_calendar(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **GET /v1/symptom-records/calendar - Get Pet Records Calendar**
-    
-    Get all pet health and behavior records for the current user's pets.
-    Returns records sorted by most recent first.
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "data": [
-            {
-                "record_id": 1,
-                "pet_id": 1,
-                "pet_name": "ลัคกี้",
-                "pet_image": "https://example.com/lucky.jpg",
-                "note": "พบว่าสัตว์เลี้ยงมีอาการเบื่ออาหาร",
-                "note_image": [
-                    "https://example.com/image1.jpg",
-                    "https://example.com/image2.jpg"
-                ],
-                "time_added": "2026-02-08T14:30:00"
-            }
-        ]
-    }
-    ```
-    """
+    """Get all pet health/behavior records for the current user's pets, sorted most-recent first."""
     try:
         records = await PetRecordServiceSQL.get_records_by_user(
             session,
@@ -71,34 +47,7 @@ async def get_record_detail(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **GET /v1/symptom-records/{record_id} - Get Record Details**
-    
-    Get detailed information about a specific pet health/behavior record.
-    
-    **Path Parameters:**
-    - **record_id**: Record ID (integer)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "data": {
-            "record_id": 1,
-            "pet_id": 1,
-            "pet_name": "ลัคกี้",
-            "pet_image": "https://example.com/lucky.jpg",
-            "date_added": "2026-02-08",
-            "time_added": "14:30",
-            "note": "พบว่าสัตว์เลี้ยงมีอาการเบื่ออาหาร และดื่มน้ำน้อยกว่าปกติ",
-            "note_image": [
-                "https://example.com/image1.jpg",
-                "https://example.com/image2.jpg"
-            ]
-        }
-    }
-    ```
-    """
+    """Get a specific pet health/behavior record. Returns 404 if not found or not owned by user."""
     record = await PetRecordServiceSQL.get_record_by_id(
         session,
         record_id,
@@ -123,36 +72,8 @@ async def create_record(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **POST /v1/symptom-records - Create New Record**
-    
-    Create a new pet health or behavior record with optional images (max 4).
-    
-    **Request Body:**
-    ```json
-    {
-        "pet_id": 1,
-        "note": "พบว่าสัตว์เลี้ยงมีอาการเบื่ออาหาร และดื่มน้ำน้อยกว่าปกติ",
-        "note_image": [
-            "https://cloudflare.example.com/pet-records/image1.jpg",
-            "https://cloudflare.example.com/pet-records/image2.jpg"
-        ]
-    }
-    ```
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "message": "Record created successfully",
-        "record_id": 1
-    }
-    ```
-    """
+    """Create a new pet health or behavior record with optional images (max 4)."""
     # Verify pet ownership
-    from sqlalchemy import select, and_
-    from app.models_sql.pet_model import Pet
-    
     result = await session.execute(
         select(Pet).where(and_(
             Pet.pet_id == record_data.pet_id,
@@ -197,32 +118,7 @@ async def update_record(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **PATCH /v1/symptom-records/{record_id} - Update Record**
-    
-    Update an existing pet health/behavior record.
-    
-    **Path Parameters:**
-    - **record_id**: Record ID (integer)
-    
-    **Request Body:** (all fields optional)
-    ```json
-    {
-        "note": "อาการดีขึ้นมากหลังจากให้ยาและดูแลเป็นพิเศษ 2 วัน",
-        "note_image": [
-            "https://cloudflare.example.com/pet-records/updated1.jpg"
-        ]
-    }
-    ```
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "message": "Record updated successfully"
-    }
-    ```
-    """
+    """Update note, images, or date/time of an existing pet health record."""
     result = await PetRecordServiceSQL.update_record(
         session,
         record_id,
@@ -251,22 +147,7 @@ async def delete_record(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **DELETE /v1/symptom-records/{record_id} - Delete Record**
-    
-    Permanently delete a pet health/behavior record.
-    
-    **Path Parameters:**
-    - **record_id**: Record ID (integer)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "message": "Record deleted successfully"
-    }
-    ```
-    """
+    """Permanently delete a pet health/behavior record."""
     result = await PetRecordServiceSQL.delete_record(
         session,
         record_id,

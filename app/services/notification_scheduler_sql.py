@@ -3,7 +3,7 @@ Notification Scheduler (SQL Version)
 Daily job to generate future notifications for medicines
 """
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import select, and_
@@ -29,10 +29,8 @@ class NotificationSchedulerSQL:
         """
         async with self.session_factory() as session:
             try:
-                print(f"[{datetime.utcnow()}] Starting daily notification generation (SQL)...")
-                
-                # Get current time
-                now = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+                print(f"[{now}] Starting daily notification generation (SQL)...")
                 one_week_ahead = now + timedelta(days=7)
                 
                 # Find all active medicines within the relevant date range
