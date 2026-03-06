@@ -66,9 +66,11 @@ class AppointmentServiceSQL:
         await session.commit()
         await session.refresh(appointment)
         
-        # Create notification immediately
-        notification_date = datetime.now(timezone.utc).replace(tzinfo=None)
-        
+        # Schedule notification 1 day before appointment (min: now + 15 min)
+        one_day_before = appointment_date - timedelta(days=1)
+        min_notify = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=15)
+        notification_date = max(one_day_before, min_notify)
+
         notification = AppointmentNotification(
             user_id=user_id,
             pet_id=pet_id,

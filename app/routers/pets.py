@@ -39,7 +39,7 @@ async def get_pet_detail(
     session: AsyncSession = Depends(get_session)
 ): 
     """Get detailed information about a specific pet. Returns 404 if not found or soft-deleted."""
-    pet = await get_pet_by_id(session, pet_id) 
+    pet = await get_pet_by_id(session, pet_id, current_user["user_id"])
     if not pet:
         raise HTTPException(status_code=404, detail="Pet not found")
     return pet
@@ -52,7 +52,7 @@ async def update_pet_endpoint(
     session: AsyncSession = Depends(get_session)
 ):
     """Partial update for pet information. Returns 404 if not found."""
-    success = await update_pet_info(session, pet_id, data)
+    success = await update_pet_info(session, pet_id, current_user["user_id"], data)
     if not success:
         raise HTTPException(status_code=404, detail="Pet not found or no changes made")
     return {"message": "Pet info updated"}
@@ -64,7 +64,7 @@ async def delete_pet_endpoint(
     session: AsyncSession = Depends(get_session)
 ):
     """Soft-delete a pet so it no longer appears in lists."""
-    success = await delete_pet(session, pet_id)
+    success = await delete_pet(session, pet_id, current_user["user_id"])
     if not success:
         raise HTTPException(status_code=404, detail="Pet not found")
     return {"message": "Pet deleted successfully"}
@@ -78,7 +78,10 @@ async def record_pet_symptom(
     session: AsyncSession = Depends(get_session)
 ):
     """Record pet symptom/note"""
-    note_id = await add_pet_record(session, pet_id, data.note, data.images if hasattr(data, 'images') else None)
+    try:
+        note_id = await add_pet_record(session, pet_id, current_user["user_id"], data.note, data.images if hasattr(data, 'images') else None)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Pet not found")
     return {"message": "Symptom recorded successfully", "note_id": note_id}
 
 @router.get("/{pet_id}/medical-history")
@@ -88,7 +91,10 @@ async def get_pet_medical_history_endpoint(
     session: AsyncSession = Depends(get_session)
 ):
     """Get all medical history/records for a pet"""
-    return await get_pet_records(session, pet_id)
+    records = await get_pet_records(session, pet_id, current_user["user_id"])
+    if records is None:
+        raise HTTPException(status_code=404, detail="Pet not found")
+    return records
 
 @router.post("/{pet_id}/medical-history")
 async def add_user_medical_history(
@@ -98,5 +104,8 @@ async def add_user_medical_history(
     session: AsyncSession = Depends(get_session)
 ):
     """Add medical history record"""
-    history_id = await add_pet_record(session, pet_id, data.note, data.images if hasattr(data, 'images') else None)
+    try:
+        history_id = await add_pet_record(session, pet_id, current_user["user_id"], data.note, data.images if hasattr(data, 'images') else None)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Pet not found")
     return {"message": "Medical history recorded", "history_id": history_id}
