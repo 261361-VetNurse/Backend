@@ -324,6 +324,16 @@ async def create_medicine(
     Create a new medicine schedule. Auto-generates notifications.
     Frequency: -1=daily, 0-6=specific weekday, comma-separated for multiple days.
     """
+    pet_check = await session.execute(
+        select(Pet).where(and_(
+            Pet.pet_id == medicine_data.pet_id,
+            Pet.user_id == current_user["user_id"],
+            Pet.is_deleted == False
+        ))
+    )
+    if not pet_check.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Pet not found")
+
     result = await MedicineServiceSQL.create_medicine(
         session, 
         medicine_data.pet_id,
@@ -368,7 +378,7 @@ async def delete_medicine(
     session: AsyncSession = Depends(get_session)
 ):
     """Soft-delete a medicine and its associated notifications."""
-    success = await MedicineServiceSQL.delete_medicine(session, medicine_id)
+    success = await MedicineServiceSQL.delete_medicine(session, medicine_id, current_user["user_id"])
     
     if not success:
         raise HTTPException(status_code=404, detail="Medicine not found")

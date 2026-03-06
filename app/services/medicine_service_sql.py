@@ -349,7 +349,8 @@ class MedicineServiceSQL:
     async def create_medicine(
         session: AsyncSession,
         pet_id: int,
-        medicine_data: Dict[str, Any]
+        medicine_data: Dict[str, Any],
+        user_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Create new medicine and generate initial notifications
@@ -358,13 +359,17 @@ class MedicineServiceSQL:
             session: Database session
             pet_id: Pet ID
             medicine_data: Medicine data dict
+            user_id: Owner user ID for ownership verification
             
         Returns:
             Result dict with medicine_id
         """
-        # Get pet info
+        # Get pet info and verify ownership
+        conditions = [Pet.pet_id == pet_id, Pet.is_deleted == False]
+        if user_id is not None:
+            conditions.append(Pet.user_id == user_id)
         result = await session.execute(
-            select(Pet).where(Pet.pet_id == pet_id)
+            select(Pet).where(and_(*conditions))
         )
         pet = result.scalar_one_or_none()
         
@@ -431,11 +436,14 @@ class MedicineServiceSQL:
         return result.scalars().all()
     
     @staticmethod
-    async def delete_medicine(session: AsyncSession, medicine_id: int) -> bool:
+    async def delete_medicine(session: AsyncSession, medicine_id: int, user_id: Optional[int] = None) -> bool:
         """Soft delete medicine (CASCADE will delete notifications)"""
+        conditions = [Medicine.medicine_id == medicine_id]
+        if user_id is not None:
+            conditions.append(Medicine.user_id == user_id)
         result = await session.execute(
             update(Medicine)
-            .where(Medicine.medicine_id == medicine_id)
+            .where(and_(*conditions))
             .values(is_deleted=True)
         )
         await session.commit()

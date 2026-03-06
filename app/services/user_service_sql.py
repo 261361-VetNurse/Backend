@@ -207,19 +207,23 @@ async def register_new_pet(session: AsyncSession, user_id: int, pet_data: PetReg
     return new_pet.pet_id
 
 
-async def get_pet_by_id(session: AsyncSession, pet_id: int) -> Optional[Dict]:
+async def get_pet_by_id(session: AsyncSession, pet_id: int, user_id: Optional[int] = None) -> Optional[Dict]:
     """
     Get pet details by ID
     
     Args:
         session: Database session
         pet_id: Pet ID
+        user_id: Owner user ID for ownership verification (optional)
     
     Returns:
         Pet dict or None
     """
+    conditions = [Pet.pet_id == pet_id, Pet.is_deleted == False]
+    if user_id is not None:
+        conditions.append(Pet.user_id == user_id)
     result = await session.execute(
-        select(Pet).where(and_(Pet.pet_id == pet_id, Pet.is_deleted == False))
+        select(Pet).where(and_(*conditions))
     )
     pet = result.scalar_one_or_none()
     
@@ -246,13 +250,14 @@ async def get_pet_by_id(session: AsyncSession, pet_id: int) -> Optional[Dict]:
     }
 
 
-async def update_pet_info(session: AsyncSession, pet_id: int, data: PetUpdateSchema) -> bool:
+async def update_pet_info(session: AsyncSession, pet_id: int, user_id: int, data: PetUpdateSchema) -> bool:
     """
     Update pet information
     
     Args:
         session: Database session
         pet_id: Pet ID
+        user_id: Owner user ID for ownership verification
         data: Update schema
     
     Returns:
@@ -265,27 +270,28 @@ async def update_pet_info(session: AsyncSession, pet_id: int, data: PetUpdateSch
     
     result = await session.execute(
         update(Pet)
-        .where(Pet.pet_id == pet_id)
+        .where(and_(Pet.pet_id == pet_id, Pet.user_id == user_id))
         .values(**update_data)
     )
     await session.commit()
     return result.rowcount > 0
 
 
-async def delete_pet(session: AsyncSession, pet_id: int) -> bool:
+async def delete_pet(session: AsyncSession, pet_id: int, user_id: int) -> bool:
     """
     Soft delete pet
     
     Args:
         session: Database session
         pet_id: Pet ID
+        user_id: Owner user ID for ownership verification
     
     Returns:
         True if successful, False otherwise
     """
     result = await session.execute(
         update(Pet)
-        .where(Pet.pet_id == pet_id)
+        .where(and_(Pet.pet_id == pet_id, Pet.user_id == user_id))
         .values(is_deleted=True)
     )
     await session.commit()
@@ -294,19 +300,26 @@ async def delete_pet(session: AsyncSession, pet_id: int) -> bool:
 
 # ==================== PET RECORDS ====================
 
-async def add_pet_record(session: AsyncSession, pet_id: int, note: str, images: Optional[List[str]] = None) -> int:
+async def add_pet_record(session: AsyncSession, pet_id: int, user_id: int, note: str, images: Optional[List[str]] = None) -> int:
     """
     Add pet health/behavior record
     
     Args:
         session: Database session
         pet_id: Pet ID
+        user_id: Owner user ID for ownership verification
         note: Record note/description
         images: Optional list of image URLs
     
     Returns:
         New record ID
     """
+    pet_check = await session.execute(
+        select(Pet).where(and_(Pet.pet_id == pet_id, Pet.user_id == user_id, Pet.is_deleted == False))
+    )
+    if not pet_check.scalar_one_or_none():
+        raise ValueError("Pet not found")
+
     new_record = PetRecord(
         pet_id=pet_id,
         note=note,
@@ -320,17 +333,24 @@ async def add_pet_record(session: AsyncSession, pet_id: int, note: str, images: 
     return new_record.record_id
 
 
-async def get_pet_records(session: AsyncSession, pet_id: int) -> List[Dict]:
+async def get_pet_records(session: AsyncSession, pet_id: int, user_id: int) -> Optional[List[Dict]]:
     """
     Get all records for a pet
     
     Args:
         session: Database session
         pet_id: Pet ID
+        user_id: Owner user ID for ownership verification
     
     Returns:
-        List of record dicts
+        List of record dicts, or None if pet not found/not owned
     """
+    pet_check = await session.execute(
+        select(Pet).where(and_(Pet.pet_id == pet_id, Pet.user_id == user_id, Pet.is_deleted == False))
+    )
+    if not pet_check.scalar_one_or_none():
+        return None
+
     result = await session.execute(
         select(PetRecord)
         .where(PetRecord.pet_id == pet_id)
