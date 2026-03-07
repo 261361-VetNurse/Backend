@@ -113,28 +113,6 @@ async def list_medications(
         
         return {
             "success": True,
-            "data": [
-                {
-                    "_id": str(notif.notification_id),
-                    "notification_id": notif.notification_id,
-                    "title": notif.title,
-                    "notification_at": notif.notification_at.isoformat(),
-                    "istaken": notif.istaken,
-                    "pet_id": str(notif.pet_id),
-                    "user_id": str(notif.user_id),
-                    "medicine_id": str(notif.medicine_id),
-                    "pet_name": pet.name if pet else "",
-                    "pet_image": pet.profile_image if pet else "",
-                    "medicine_name": medicine.name if medicine else "",
-                    "dosage": medicine.dosage if medicine else "",
-                    "medicine_frequency": medicine.frequency if medicine else "",
-                    "reminder_time": medicine.reminder_time if medicine else [],
-                    "status": medicine.status if medicine else "TAKE",
-                    "created_at": notif.created_at.isoformat() if notif.created_at else "",
-                    "updated_at": notif.updated_at.isoformat() if notif.updated_at else "",
-                }
-                for notif, pet, medicine in rows
-            ]
             "data": response_data
         }
         
