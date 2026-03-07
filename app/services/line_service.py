@@ -49,7 +49,20 @@ async def exchange_user_token(code: str):
         }
     # -----------------------
 
-    async with httpx.AsyncClient() as client:
+    # async with httpx.AsyncClient() as client:
+    #     response = await client.post(
+    #         "https://api.line.me/oauth2/v2.1/token",
+    #         data={
+    #             "grant_type": "authorization_code",
+    #             "code": code,
+    #             "redirect_uri": settings.REDIRECT_URI,
+    #             "client_id": settings.LOGIN_CLIENT_ID,
+    #             "client_secret": settings.LOGIN_CLIENT_SECRET
+    #         }
+    #     )
+    #     return response.json()
+    
+    async with httpx.AsyncClient(verify=False) as client:
         response = await client.post(
             "https://api.line.me/oauth2/v2.1/token",
             data={
@@ -60,7 +73,11 @@ async def exchange_user_token(code: str):
                 "client_secret": settings.LOGIN_CLIENT_SECRET
             }
         )
-        return response.json()
+        # แนะนำให้เพิ่มบรรทัดนี้เพื่อเช็ค Error ใน Terminal
+        result = response.json()
+        if response.status_code != 200:
+            print(f" LINE Token Error: {result}")
+        return result
 
 
 async def get_user_profile(access_token: str):

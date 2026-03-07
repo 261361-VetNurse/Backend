@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # --- LINE Login ---
     LOGIN_CLIENT_ID: str
     LOGIN_CLIENT_SECRET: str
-    REDIRECT_URI: str = "http://localhost:8000/auth/callback"
+    REDIRECT_URI: str = "https://20.255.60.206/auth/callback"
     
     # --- Mock Login (High Priority for Dev) ---
     MOCK_LINE_LOGIN_ENABLED: bool = True

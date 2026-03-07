@@ -73,7 +73,9 @@ All ID fields use **integer** type (AUTO_INCREMENT primary keys), not strings.
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
