@@ -4,7 +4,7 @@ Handles user authentication, JWT tokens, and Line Login
 """
 import jwt
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -135,7 +135,7 @@ async def save_jwt_token(
         JWTToken object
     """
     # Calculate expiration time
-    expires_at = datetime.utcnow() + timedelta(seconds=settings.JWT_EXPIRE_SECONDS)
+    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=settings.JWT_EXPIRE_SECONDS)
     
     # Check if token exists
     result = await session.execute(

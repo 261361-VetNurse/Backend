@@ -66,9 +66,8 @@ async def get_current_user_sql(
                 detail="User not found in database"
             )
         
-        # Convert SQLAlchemy model to dict for backward compatibility
+        # Convert SQLAlchemy model to dict
         return {
-            "_id": user.user_id,  # For backward compatibility
             "user_id": user.user_id,
             "line_id": user.line_id,
             "display_name": user.display_name,

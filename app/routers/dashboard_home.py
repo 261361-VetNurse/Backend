@@ -3,12 +3,12 @@ Pet Owners Home Page Router - Dashboard
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models_sql.base import get_async_session
+from app.database_sql import get_session
 from app.models_sql import Pet, Medicine, MedicineNotification, Appointment
 from app.services.auth_dependency_sql import get_current_user
 
@@ -22,7 +22,7 @@ router = APIRouter(
 @router.get("", summary="Get Dashboard Data", description="Get dashboard data for pet owner home page")
 async def get_home_page_dashboard(
     current_user: dict = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_session)
 ):
     """
     **GET /v1/dashboard/home - Dashboard Data**
@@ -60,7 +60,7 @@ async def get_home_page_dashboard(
         ]
         
         # 2. Get today's medicine notifications (only today)
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
         today_end = today_start + timedelta(days=1)
         
         # Get medicine notifications with medicine and pet details
@@ -106,7 +106,7 @@ async def get_home_page_dashboard(
             })
         
         # 3. Get current/future appointments (not past)
-        current_time = datetime.utcnow()
+        current_time = datetime.now(timezone.utc).replace(tzinfo=None)
         
         result = await session.execute(
             select(Appointment)

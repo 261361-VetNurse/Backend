@@ -3,9 +3,8 @@ Notifications Router (SQL Version)
 API Endpoints for Unified Notification Feed
 """
 from fastapi import APIRouter, HTTPException, status, Depends
-from typing import List, Optional
-from datetime import datetime, date as date_type
-from sqlalchemy import select, and_, desc, union_all, literal
+from datetime import datetime
+from sqlalchemy import select, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 

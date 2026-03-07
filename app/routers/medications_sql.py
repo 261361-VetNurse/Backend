@@ -3,8 +3,8 @@ Medications Router (SQL Version)
 API Endpoints for Medicine & Notification Management
 """
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import Optional, List
-from datetime import datetime, date as date_type
+from typing import Optional
+from datetime import datetime, timezone
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,30 +27,8 @@ async def list_medications(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    **GET /v1/medications - Medicine Notification Feed**
-    
-    Get list of medicine notifications for current user's pets.
-    Can filter by specific pet and/or date.
-    
-    **Query Parameters:**
-    - **pets_id** (optional): Filter notifications for specific pet
-    - **date** (optional): Filter by date in YYYY-MM-DD format (default: today)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "data": [
-            {
-                "notification_id": 1,
-                "title": "Time to give Amoxicillin to Lucky",
-                "notification_at": "2026-02-08T08:00:00",
-                "istaken": false,
-                "pet_id": 1
-            }
-        ]
-    }
-    ```
+    Get medicine notification feed for current user.
+    Optionally filter by pet and/or date (defaults to today).
     """
     try:
         # Parse date
@@ -63,7 +41,7 @@ async def list_medications(
                     detail="Invalid date format. Use YYYY-MM-DD"
                 )
         else:
-            filter_date = datetime.utcnow().date()
+            filter_date = datetime.now(timezone.utc).replace(tzinfo=None).date()
         
         # Build query
         conditions = [
@@ -175,37 +153,7 @@ async def get_notification_detail(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **GET /v1/medications/{notification_id} - Get Notification Details**
-    
-    Get detailed information about a specific medicine notification including pet and medicine details.
-    
-    **Path Parameters:**
-    - **notification_id**: Notification ID (integer)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "data": {
-            "notification_id": 1,
-            "title": "Time to give Amoxicillin to Lucky",
-            "notification_at": "2026-02-08T08:00:00",
-            "istaken": true,
-            "taken_at": "2026-02-08T22:07:04",
-            "pet_id": 1,
-            "pet_name": "Lucky",
-            "pet_image": "https://example.com/lucky.jpg",
-            "medicine_id": 1,
-            "medicine_name": "Amoxicillin",
-            "dosage": "2 tablets",
-            "frequency": "-1",
-            "reminder_time": ["08:00", "20:00"],
-            "time_per_day": 2
-        }
-    }
-    ```
-    """
+    """Get full details of a medicine notification including pet and medicine info."""
     result = await session.execute(
         select(MedicineNotification)
         .where(and_(
@@ -306,45 +254,7 @@ async def get_medicines_by_pet(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **GET /v1/medications/medicines/by-pet/{pet_id} - Get All Pet's Medicines**
-    
-    Get complete list of all medicines for a specific pet with full details.
-    
-    **Path Parameters:**
-    - **pet_id**: Pet ID (integer)
-    
-    **Returns:**
-    - List of all medicines with complete information including:
-      - Basic info (name, dosage, frequency)
-      - Schedule (start_date, end_date, reminder_time)
-      - Status (active/stopped)
-      - Additional info (notes, properties, images)
-    
-    **Response Example:**
-    ```json
-    {
-        "success": true,
-        "data": [
-            {
-                "medicine_id": 5,
-                "name": "Amoxicillin",
-                "dosage": "1 tablet",
-                "frequency": "-1",
-                "status": "TAKE",
-                "start_date": "2026-02-01T00:00:00",
-                "end_date": "2026-02-28T00:00:00",
-                "reminder_time": ["08:00", "20:00"],
-                "notes": ["เริ่มรับประทานวันที่ 1 ก.พ.", "กินหลังอาหาร"],
-                "properties": "ยาปฏิชีวนะรักษาการติดเชื้อ",
-                "image_urls": ["https://example.com/medicine1.jpg"],
-                "created_at": "2026-02-01T10:00:00",
-                "updated_at": "2026-02-01T10:00:00"
-            }
-        ]
-    }
-    ```
-    """
+    """Get complete medicine list for a specific pet including schedule and status."""
     # Verify pet belongs to user
     pet_result = await session.execute(
         select(Pet).where(and_(
@@ -389,32 +299,7 @@ async def filter_medicines_by_pet(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **GET /v1/medications/medicines/filter?pets_id={pet_id} - Filter Medicines by Pet**
-    
-    Get all medicines for a specific pet with pet information (name and image).
-    
-    **Query Parameters:**
-    - **pets_id** (required): Pet ID (integer)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "data": [
-            {
-                "medicine_id": 1,
-                "medicine_name": "Amoxicillin",
-                "medicine_dosage": "1 tablet",
-                "medicine_frequency": "-1",
-                "pet_name": "Lucky",
-                "pet_image": "https://example.com/lucky.jpg",
-                "reminder_time": ["08:00", "20:00"]
-            }
-        ]
-    }
-    ```
-    """
+    """Get medicines for a specific pet (by query param) with pet name and image."""
     # Verify pet ownership
     pet_result = await session.execute(
         select(Pet).where(and_(
@@ -458,37 +343,19 @@ async def create_medicine(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    **POST /v1/medications/medicines - Create New Medicine**
-    
-    Create a new medicine schedule. Automatically generates notifications.
-    
-    **Request Body:**
-    ```json
-    {
-        "pet_id": 2,
-        "name": "Amoxicillin",
-        "dosage": "1 tablet",
-        "frequency": "-1",
-        "reminder_time": ["08:00", "20:00"],
-        "start_date": "2026-02-01T00:00:00",
-        "end_date": "2026-02-28T00:00:00"
-    }
-    ```
-    
-    **Frequency values:**
-    - `-1` = Daily
-    - `0-6` = Specific weekdays (0=Monday, 6=Sunday)
-    - `0,2,4` = Multiple days (Mon, Wed, Fri)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "message": "Medicine created successfully",
-        "medicine_id": 5
-    }
-    ```
+    Create a new medicine schedule. Auto-generates notifications.
+    Frequency: -1=daily, 0-6=specific weekday, comma-separated for multiple days.
     """
+    pet_check = await session.execute(
+        select(Pet).where(and_(
+            Pet.pet_id == medicine_data.pet_id,
+            Pet.user_id == current_user["user_id"],
+            Pet.is_deleted == False
+        ))
+    )
+    if not pet_check.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Pet not found")
+
     result = await MedicineServiceSQL.create_medicine(
         session, 
         medicine_data.pet_id,
@@ -509,34 +376,9 @@ async def update_medicine(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    **PATCH /v1/medications/medicines/{medicine_id} - Update Medicine**
-    
-    Update medicine information. Handles status changes and note additions.
-    
-    **Path Parameters:**
-    - **medicine_id**: Medicine ID (integer)
-    
-    **Request Body:** (all fields optional)
-    ```json
-    {
-        "status": "STOP",
-        "note": "Completed treatment"
-    }
-    ```
-    
-    **Status values:**
-    - `TAKE` = Active (medicine is being taken)
-    - `STOP` = Stopped (deletes future notifications)
-    
-    **Note:** Keeps only last 3 notes
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "message": "Medicine updated successfully"
-    }
-    ```
+    Update medicine info or status.
+    status=STOP deletes future notifications and appends a note.
+    Schedule changes regenerate notifications.
     """
     result = await MedicineServiceSQL.update_medicine(
         session,
@@ -557,23 +399,8 @@ async def delete_medicine(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """
-    **DELETE /v1/medications/medicines/{medicine_id} - Delete Medicine**
-    
-    Soft delete a medicine and its associated notifications.
-    
-    **Path Parameters:**
-    - **medicine_id**: Medicine ID (integer)
-    
-    **Response:**
-    ```json
-    {
-        "success": true,
-        "message": "Medicine deleted"
-    }
-    ```
-    """
-    success = await MedicineServiceSQL.delete_medicine(session, medicine_id)
+    """Soft-delete a medicine and its associated notifications."""
+    success = await MedicineServiceSQL.delete_medicine(session, medicine_id, current_user["user_id"])
     
     if not success:
         raise HTTPException(status_code=404, detail="Medicine not found")

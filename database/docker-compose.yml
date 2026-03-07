@@ -1,122 +1,56 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
     container_name: pet_medic_mysql
     restart: unless-stopped
-    
-    # Environment Variables
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password_change_me}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-pet_medic_db}
-      MYSQL_USER: ${MYSQL_USER:-pet_medic_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pet_medic_password}
-      TZ: Asia/Bangkok
-    
-    # Port Mapping
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "${MYSQL_PORT:-3306}:3306"
-    
-    # Volume Mapping
     volumes:
-      # Persistent data
-      - mysql_data:/var/lib/mysql
-      
-      # Custom MySQL configuration
+      - pet_medic_mysql_data:/var/lib/mysql
+      - pet_medic_mysql_logs:/var/log/mysql
       - ./mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
-      
-      # Initialization scripts (runs on first startup)
-      - ./setup_db_mysql_improved.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      
-      # Logs
-      - mysql_logs:/var/log/mysql
-    
-    # Health Check
+      - ./setup_db_mysql_improved.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./seed_data.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password_change_me}"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
-    
-    # Resource Limits
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '1'
-          memory: 512M
-    
-    # Network
-    networks:
-      - pet_medic_network
-    
-    # Command (Custom MySQL settings)
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-authentication-plugin=mysql_native_password
-      - --max_connections=200
-      - --innodb_buffer_pool_size=1G
-      - --innodb_log_file_size=256M
 
-  # Optional: phpMyAdmin for database management
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: pet_medic_phpmyadmin
     restart: unless-stopped
-    
-    environment:
-      PMA_HOST: mysql
-      PMA_PORT: 3306
-      PMA_USER: ${MYSQL_USER:-pet_medic_user}
-      PMA_PASSWORD: ${MYSQL_PASSWORD:-pet_medic_password}
-      UPLOAD_LIMIT: 100M
-    
-    ports:
-      - "${PHPMYADMIN_PORT:-8080}:80"
-    
     depends_on:
       mysql:
         condition: service_healthy
-    
-    networks:
-      - pet_medic_network
+    ports:
+      - "${PHPMYADMIN_PORT:-8080}:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+      UPLOAD_LIMIT: 64M
 
-  # Optional: Adminer (lightweight alternative to phpMyAdmin)
   adminer:
     image: adminer:latest
     container_name: pet_medic_adminer
     restart: unless-stopped
-    
-    environment:
-      ADMINER_DEFAULT_SERVER: mysql
-      ADMINER_DESIGN: pepa-linha
-    
-    ports:
-      - "${ADMINER_PORT:-8081}:8080"
-    
     depends_on:
       mysql:
         condition: service_healthy
-    
-    networks:
-      - pet_medic_network
+    ports:
+      - "${ADMINER_PORT:-8081}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
 
-# Volumes
 volumes:
-  mysql_data:
-    name: pet_medic_mysql_data
-    driver: local
-  mysql_logs:
-    name: pet_medic_mysql_logs
-    driver: local
-
-# Networks
-networks:
-  pet_medic_network:
-    name: pet_medic_network
-    driver: bridge
+  pet_medic_mysql_data:
+  pet_medic_mysql_logs:
