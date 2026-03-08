@@ -14,14 +14,18 @@ from app.routers.notifications_sql import router as notifications_router
 async def lifespan(app: FastAPI):
     # Connect to MySQL database
     await connect_to_mysql()
-    
-    # Start notification scheduler
-    from app.services.notification_scheduler_sql import notification_scheduler_sql
-    notification_scheduler_sql.start()
+
+    # Run scheduler only when explicitly enabled (isolates API and worker roles).
+    notification_scheduler_sql = None
+    if settings.ENABLE_SCHEDULER:
+        from app.services.notification_scheduler_sql import notification_scheduler_sql as scheduler
+        notification_scheduler_sql = scheduler
+        notification_scheduler_sql.start()
     
     yield
     
-    notification_scheduler_sql.shutdown()
+    if notification_scheduler_sql is not None:
+        notification_scheduler_sql.shutdown()
     await close_mysql_connection()
 
 # API Metadata for Swagger Documentation

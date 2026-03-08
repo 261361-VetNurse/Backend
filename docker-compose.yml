@@ -1,33 +1,95 @@
 services:
+  db:
+    image: mysql:8.0
+    container_name: petlite-db-local
+    restart: unless-stopped
+    env_file:
+      - ./database/.env
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
+      - ./database/setup_db_mysql_improved.sql:/docker-entrypoint-initdb.d/01_setup_db.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - db-network
 
-  frontend:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
-    image: vetnurse-frontend:latest
-    container_name: vetnurse-frontend
+    container_name: petlite-backend-local
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - ./.env
+      - ./database/.env
     environment:
-      - NODE_ENV=production
-      - NODE_OPTIONS=--max-old-space-size=512
-      # ── Backend API ──────────────────────────────────────────────
-      - VITE_API_URL=${VITE_API_URL}
-      # ── LINE Login ───────────────────────────────────────────────
-      - VITE_LINE_CLIENT_ID=${VITE_LINE_CLIENT_ID}
-      - VITE_WEB_URL=${VITE_WEB_URL}
-      - VITE_LINE_REDIRECT_PATH=${VITE_LINE_REDIRECT_PATH}
-      # ── Cloudflare R2 (server-only) ──────────────────────────────
-      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
-      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
-      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
-      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
-      - VITE_R2_PUBLIC_URL=${VITE_R2_PUBLIC_URL}
-    deploy:
-      resources:
-        limits:
-          memory: 768M # container hard cap (Node heap is 512M inside)
-        reservations:
-          memory: 256M
-  
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - ENABLE_SCHEDULER=false
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - db-network
+      - egress-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petlite-scheduler-local
+    restart: unless-stopped
+    command: ["python", "-m", "app.scheduler_worker"]
+    env_file:
+      - ./.env
+      - ./database/.env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - ENABLE_SCHEDULER=true
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - db-network
+      - egress-network
+
+networks:
+  db-network:
+    name: petlite-backend-db-local
+    driver: bridge
+    internal: true
+  egress-network:
+    name: petlite-backend-egress-local
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local

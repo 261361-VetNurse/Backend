@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Vet Nurse Backend"
     APP_VERSION: str = "2.0.0"
+    ENABLE_SCHEDULER: bool = True
     
     # Database - MySQL
     MYSQL_HOST: str = "localhost"
