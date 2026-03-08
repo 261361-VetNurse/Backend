@@ -14,6 +14,13 @@ from app.models_sql.pet_model import Pet
 
 class AppointmentServiceSQL:
     """Service class for appointment-related business logic (SQL version)"""
+
+    @staticmethod
+    def _to_naive_utc(dt: datetime) -> datetime:
+        """Convert aware datetimes to naive UTC; keep naive datetimes unchanged."""
+        if dt.tzinfo is not None and dt.utcoffset() is not None:
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
     
     @staticmethod
     async def create_appointment_with_notification(
@@ -51,40 +58,46 @@ class AppointmentServiceSQL:
         
         pet_name = pet.name or "your pet"
         
-        # Create appointment (user_id auto-populated by trigger)
-        appointment = Appointment(
-            user_id=user_id,  # Set explicitly
-            pet_id=pet_id,
-            location=location,
-            appointment_date=appointment_date,
-            status=status,
-            note=note,
-            is_deleted=False,
-        )
-        
-        session.add(appointment)
-        await session.commit()
-        await session.refresh(appointment)
-        
-        # Schedule notification 1 day before appointment (min: now + 15 min)
-        one_day_before = appointment_date - timedelta(days=1)
-        min_notify = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=15)
-        notification_date = max(one_day_before, min_notify)
+        # Normalize datetime to avoid aware/naive comparison errors.
+        normalized_appointment_date = AppointmentServiceSQL._to_naive_utc(appointment_date)
 
-        notification = AppointmentNotification(
-            user_id=user_id,
-            pet_id=pet_id,
-            appointment_id=appointment.appointment_id,
-            title=f"Reminder: Appointment at {location} for {pet_name}",
-            notification_at=notification_date,
-            sending_status='not_sent',
-            status='pending',
-            sending_count=0,
-        )
-        
-        session.add(notification)
-        await session.commit()
-        await session.refresh(notification)
+        try:
+            # Create appointment and notification in one transaction.
+            appointment = Appointment(
+                user_id=user_id,
+                pet_id=pet_id,
+                location=location,
+                appointment_date=normalized_appointment_date,
+                status=status,
+                note=note,
+                is_deleted=False,
+            )
+            session.add(appointment)
+            await session.flush()
+
+            # Schedule notification 1 day before appointment (min: now + 15 min)
+            one_day_before = normalized_appointment_date - timedelta(days=1)
+            min_notify = datetime.utcnow() + timedelta(minutes=15)
+            notification_date = max(one_day_before, min_notify)
+
+            notification = AppointmentNotification(
+                user_id=user_id,
+                pet_id=pet_id,
+                appointment_id=appointment.appointment_id,
+                title=f"Reminder: Appointment at {location} for {pet_name}",
+                notification_at=notification_date,
+                sending_status='not_sent',
+                status='pending',
+                sending_count=0,
+            )
+
+            session.add(notification)
+            await session.commit()
+            await session.refresh(appointment)
+            await session.refresh(notification)
+        except Exception as e:
+            await session.rollback()
+            return {"success": False, "error": f"Failed to create appointment notification: {str(e)}"}
         
         return {
             "success": True,
@@ -150,7 +163,11 @@ class AppointmentServiceSQL:
             if notification:
                 # Update notification_at if date changed
                 if date_changed:
-                    notification.notification_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                    new_appointment_date = AppointmentServiceSQL._to_naive_utc(update_data["appointment_date"])
+                    update_data["appointment_date"] = new_appointment_date
+                    one_day_before = new_appointment_date - timedelta(days=1)
+                    min_notify = datetime.utcnow() + timedelta(minutes=15)
+                    notification.notification_at = max(one_day_before, min_notify)
                     response["notification_updated"] = True
                 
                 # Update title if location changed

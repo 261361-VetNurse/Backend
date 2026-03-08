@@ -44,7 +44,10 @@ async def get_all_notifications(
             .options(
                 selectinload(MedicineNotification.medicine).selectinload(Medicine.pet)
             )
-            .where(MedicineNotification.user_id == user_id)
+            .where(and_(
+                MedicineNotification.user_id == user_id,
+                MedicineNotification.status == "sent"
+            ))
             .order_by(desc(MedicineNotification.notification_at))
             .limit(limit)
         )
@@ -58,7 +61,10 @@ async def get_all_notifications(
             .options(
                 selectinload(AppointmentNotification.appointment).selectinload(Appointment.pet)
             )
-            .where(AppointmentNotification.user_id == user_id)
+            .where(and_(
+                AppointmentNotification.user_id == user_id,
+                AppointmentNotification.status == "sent"
+            ))
             .order_by(desc(AppointmentNotification.notification_at))
             .limit(limit)
         )
@@ -78,8 +84,8 @@ async def get_all_notifications(
                 "notification_id": n.notification_id,
                 "title": n.title,
                 "notification_at": n.notification_at,
-                "is_read": n.istaken, # Mapping 'istaken' to generic 'is_read' concept if needed, or keep specific keys
-                "status": "taken" if n.istaken else "pending", # normalize status
+                "is_read": n.status != 'pending',
+                "status": n.status,
                 "payload": {
                     "medicine_id": n.medicine_id,
                     "medicine_name": n.medicine.name if n.medicine else "Unknown Medicine",

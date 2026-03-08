@@ -32,7 +32,7 @@ class NotificationSchedulerSQL:
         """
         async with self.session_factory() as session:
             try:
-                now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+                now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
                 print(f"[{now}] Starting daily notification generation (SQL)...")
                 one_week_ahead = now + timedelta(days=7)
                 
@@ -110,7 +110,8 @@ class NotificationSchedulerSQL:
 
         async with self.session_factory() as session:
             try:
-                now = datetime.now(timezone.utc).replace(tzinfo=None)
+                now = datetime.now()
+                window_start = now - timedelta(minutes=10)
                 window_end = now + timedelta(minutes=15)
 
                 # --- Medicine Notifications ---
@@ -120,6 +121,7 @@ class NotificationSchedulerSQL:
                     .where(and_(
                         MedicineNotification.sending_status == 'not_sent',
                         MedicineNotification.status == 'pending',
+                        MedicineNotification.notification_at >= window_start,
                         MedicineNotification.notification_at <= window_end,
                     ))
                 )
@@ -147,6 +149,7 @@ class NotificationSchedulerSQL:
                     .where(and_(
                         AppointmentNotification.sending_status == 'not_sent',
                         AppointmentNotification.status == 'pending',
+                        AppointmentNotification.notification_at >= window_start,
                         AppointmentNotification.notification_at <= window_end,
                     ))
                 )
