@@ -17,6 +17,14 @@ from app.models_sql.pet_model import Pet
 from app.models_sql.user_model import User
 from app.services.medicine_service_sql import MedicineServiceSQL
 
+# Thai timezone (UTC+7) — matches MySQL session timezone configured in the project.
+TH_TZ = timezone(timedelta(hours=7))
+
+
+def _now_th() -> datetime:
+    """Current Thai time (UTC+7) as a naive datetime, matching the DB session timezone."""
+    return datetime.now(TH_TZ).replace(tzinfo=None)
+
 
 class NotificationSchedulerSQL:
     """Scheduler for automatic notification generation (SQL version)"""
@@ -28,13 +36,13 @@ class NotificationSchedulerSQL:
     async def generate_daily_notifications(self):
         """
         Daily job: Generate notifications for all active medicines
-        Runs at midnight and generates notifications for the next 1 week (7 days)
+        Runs at midnight and generates missing notifications for today.
         """
         async with self.session_factory() as session:
             try:
-                now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                now = _now_th().replace(hour=0, minute=0, second=0, microsecond=0)
                 print(f"[{now}] Starting daily notification generation (SQL)...")
-                one_week_ahead = now + timedelta(days=7)
+                one_day_ahead = now + timedelta(days=1)
                 
                 # Find all active medicines within the relevant date range
                 result = await session.execute(
@@ -42,7 +50,7 @@ class NotificationSchedulerSQL:
                     .where(and_(
                         Medicine.status == 'TAKE',
                         Medicine.end_date >= now.date(),
-                        Medicine.start_date <= one_week_ahead.date(),
+                        Medicine.start_date <= one_day_ahead.date(),
                         Medicine.is_deleted == False
                     ))
                 )
@@ -52,21 +60,6 @@ class NotificationSchedulerSQL:
                 medicines_processed = 0
                 
                 for medicine in active_medicines:
-                    # Check if notifications already exist for this period
-                    existing_result = await session.execute(
-                        select(MedicineNotification)
-                        .where(and_(
-                            MedicineNotification.medicine_id == medicine.medicine_id,
-                            MedicineNotification.notification_at >= now,
-                            MedicineNotification.notification_at < one_week_ahead
-                        ))
-                    )
-                    existing_notifications = existing_result.scalars().all()
-                    
-                    # Skip if notifications already exist
-                    if len(existing_notifications) > 0:
-                        continue
-                    
                     # Get pet details
                     pet_result = await session.execute(
                         select(Pet).where(Pet.pet_id == medicine.pet_id)
@@ -86,7 +79,7 @@ class NotificationSchedulerSQL:
                         end_date=datetime.combine(medicine.end_date, datetime.max.time()),
                         frequency=medicine.frequency,
                         reminder_times=medicine.reminder_time,
-                        days_ahead=7
+                        days_ahead=1
                     )
                     
                     if count > 0:
@@ -110,7 +103,7 @@ class NotificationSchedulerSQL:
 
         async with self.session_factory() as session:
             try:
-                now = datetime.now()
+                now = _now_th()
                 window_start = now - timedelta(minutes=10)
                 window_end = now + timedelta(minutes=15)
 

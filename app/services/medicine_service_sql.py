@@ -11,6 +11,14 @@ from sqlalchemy.orm import selectinload
 from app.models_sql.medicine_model import Medicine, MedicineNotification
 from app.models_sql.pet_model import Pet
 
+# Thai timezone (UTC+7) — matches MySQL session timezone configured in the project.
+TH_TZ = timezone(timedelta(hours=7))
+
+
+def _now_th() -> datetime:
+    """Current Thai time (UTC+7) as a naive datetime, matching the DB session timezone."""
+    return datetime.now(TH_TZ).replace(tzinfo=None)
+
 
 class MedicineServiceSQL:
     """Service class for medicine-related business logic (SQL version)"""
@@ -103,7 +111,7 @@ class MedicineServiceSQL:
         frequency_days = MedicineServiceSQL.parse_frequency(frequency)
         
         # Calculate generation window
-        now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+        now = _now_th().replace(hour=0, minute=0, second=0, microsecond=0)
         generation_end = now + timedelta(days=days_ahead)
         
         # Normalize start_date/end_date to datetime (may be date or datetime)
@@ -124,6 +132,17 @@ class MedicineServiceSQL:
         if actual_start > actual_end:
             return 0
         
+        # Preload existing notification timestamps for the target window to avoid duplicates.
+        existing_result = await session.execute(
+            select(MedicineNotification.notification_at)
+            .where(and_(
+                MedicineNotification.medicine_id == medicine_id,
+                MedicineNotification.notification_at >= actual_start,
+                MedicineNotification.notification_at <= actual_end,
+            ))
+        )
+        existing_notification_times = {row[0] for row in existing_result.all()}
+
         current_date = actual_start
         notifications = []
         
@@ -140,20 +159,20 @@ class MedicineServiceSQL:
                         reminder_time
                     )
                     
-                    title = f"Time to give {medicine_name} to {pet_name}"
-                    
-                    notification = MedicineNotification(
-                        user_id=user_id,
-                        pet_id=pet_id,
-                        medicine_id=medicine_id,
-                        title=title,
-                        notification_at=notification_datetime,
-                        sending_status='not_sent',
-                        status='pending',
-                        sending_count=0,
-                        istaken=False,
-                    )
-                    notifications.append(notification)
+                    if notification_datetime not in existing_notification_times:
+                        title = f"Time to give {medicine_name} to {pet_name}"
+                        notification = MedicineNotification(
+                            user_id=user_id,
+                            pet_id=pet_id,
+                            medicine_id=medicine_id,
+                            title=title,
+                            notification_at=notification_datetime,
+                            sending_status='not_sent',
+                            status='pending',
+                            sending_count=0,
+                            istaken=False,
+                        )
+                        notifications.append(notification)
             
             current_date += timedelta(days=1)
         
@@ -164,6 +183,26 @@ class MedicineServiceSQL:
             return len(notifications)
         
         return 0
+
+    @staticmethod
+    async def update_future_notification_titles(
+        session: AsyncSession,
+        medicine_id: int,
+        title: str,
+    ) -> int:
+        """Update future pending notification titles (used when medicine name changes)."""
+        current_time = _now_th()
+        result = await session.execute(
+            update(MedicineNotification)
+            .where(and_(
+                MedicineNotification.medicine_id == medicine_id,
+                MedicineNotification.notification_at >= current_time,
+                MedicineNotification.status == 'pending',
+            ))
+            .values(title=title)
+        )
+        await session.commit()
+        return result.rowcount
     
     @staticmethod
     async def delete_future_notifications(
@@ -182,7 +221,7 @@ class MedicineServiceSQL:
         Returns:
             Number deleted
         """
-        current_time = datetime.now(timezone.utc).replace(tzinfo=None)
+        current_time = _now_th()
         
         conditions = [
             MedicineNotification.medicine_id == medicine_id,
@@ -278,11 +317,17 @@ class MedicineServiceSQL:
         # Check Scenario A: Schedule change
         schedule_fields = ["frequency", "start_date", "end_date", "reminder_time"]
         schedule_changed = any(field in update_data for field in schedule_fields)
+        name_changed = (
+            "name" in update_data and
+            update_data["name"] and
+            update_data["name"] != medicine.name
+        )
         
         response = {
             "success": True,
             "notifications_deleted": 0,
             "notifications_created": 0,
+            "notification_titles_updated": 0,
             "note_added": False
         }
         
@@ -335,6 +380,18 @@ class MedicineServiceSQL:
                 reminder_times=reminder_time
             )
             response["notifications_created"] = created
+
+        # Name-only edit should still propagate to pending notifications.
+        elif name_changed:
+            pet = medicine.pet
+            pet_name = pet.name if pet else "Unknown Pet"
+            new_title = f"Time to give {update_data['name']} to {pet_name}"
+            updated = await MedicineServiceSQL.update_future_notification_titles(
+                session=session,
+                medicine_id=medicine_id,
+                title=new_title,
+            )
+            response["notification_titles_updated"] = updated
         
         # Update medicine fields
         if update_data:
