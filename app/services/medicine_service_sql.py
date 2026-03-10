@@ -116,12 +116,12 @@ class MedicineServiceSQL:
         
         # Normalize start_date/end_date to datetime (may be date or datetime)
         if hasattr(start_date, 'hour'):
-            start_dt = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            start_dt = start_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
         else:
             start_dt = datetime.combine(start_date, datetime.min.time())
         
         if hasattr(end_date, 'hour'):
-            end_dt = end_date.replace(hour=23, minute=59, second=59)
+            end_dt = end_date.replace(hour=23, minute=59, second=59, tzinfo=None)
         else:
             end_dt = datetime.combine(end_date, datetime.max.time().replace(microsecond=0))
         

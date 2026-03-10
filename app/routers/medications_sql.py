@@ -179,6 +179,7 @@ async def get_notification_detail(
             "medicine_name": medicine.name if medicine else None,
             "dosage": medicine.dosage if medicine else None,
             "frequency": medicine.frequency if medicine else None,
+            "status": medicine.status if medicine else None,
             "start_date": medicine.start_date.isoformat() if medicine and medicine.start_date else None,
             "end_date": medicine.end_date.isoformat() if medicine and medicine.end_date else None,
             "notes": medicine.notes if medicine and medicine.notes else [],
