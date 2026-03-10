@@ -162,6 +162,7 @@ async def get_pets_by_owner(session: AsyncSession, user_id: int) -> List[Dict]:
             "birth_date": pet.birth_date.isoformat() if pet.birth_date else None,
             "weight_kg": float(pet.weight_kg) if pet.weight_kg else None,
             "allergies": pet.allergies,
+            "note": pet.note,
             "infecund": pet.infecund,
             "in_medical": pet.in_medical,
             "profile_image": pet.profile_image,

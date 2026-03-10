@@ -85,6 +85,8 @@ async def list_medications(
                     "reminder_time": medicine.reminder_time if medicine else [],
                     "start_date": medicine.start_date.isoformat() if medicine and medicine.start_date else None,
                     "end_date": medicine.end_date.isoformat() if medicine and medicine.end_date else None,
+                    "status": medicine.status if medicine else None,
+                    "is_deleted": medicine.is_deleted if medicine else False,
                     "reminders": []
                 }
             
@@ -232,7 +234,9 @@ async def get_medicines_by_pet(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    """Get complete medicine list for a specific pet including schedule and status."""
+    """Get complete medicine list for a specific pet including schedule and status.
+    Returns ALL medicines including soft-deleted ones so the frontend can display them as inactive.
+    """
     # Verify pet belongs to user
     pet_result = await session.execute(
         select(Pet).where(and_(
@@ -245,18 +249,26 @@ async def get_medicines_by_pet(
     if not pet:
         raise HTTPException(status_code=404, detail="Pet not found")
     
-    # Get all medicines for this pet
-    medicines = await MedicineServiceSQL.get_medicines_by_pet(session, pet_id)
+    # Get ALL medicines for this pet, including soft-deleted ones
+    # (Frontend handles is_deleted display logic)
+    med_result = await session.execute(
+        select(Medicine)
+        .where(Medicine.pet_id == pet_id)
+        .order_by(Medicine.created_at.desc())
+    )
+    medicines = med_result.scalars().all()
     
     return {
         "success": True,
         "data": [
             {
                 "medicine_id": med.medicine_id,
+                "pet_id": med.pet_id,
                 "name": med.name,
                 "dosage": med.dosage,
                 "frequency": med.frequency,
                 "status": med.status,
+                "is_deleted": med.is_deleted,
                 "start_date": med.start_date.isoformat() if med.start_date else None,
                 "end_date": med.end_date.isoformat() if med.end_date else None,
                 "reminder_time": med.reminder_time if med.reminder_time else [],

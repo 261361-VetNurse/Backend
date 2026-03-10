@@ -98,6 +98,8 @@ class GroupedMedicineNotification(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     note: Optional[str] = None
+    status: Optional[str] = None
+    is_deleted: Optional[bool] = None
 
 class NotificationListResponse(BaseModel):
     """Response for GET /v1/medications"""
