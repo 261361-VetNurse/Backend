@@ -25,8 +25,10 @@ class AppointmentServiceSQL:
 
     @staticmethod
     def _to_naive_th(dt: datetime) -> datetime:
-        """Strip tzinfo only — no timezone conversion. Frontend sends Thai time directly."""
-        return dt.replace(tzinfo=None)
+        """Convert datetime to naive Thai time. If aware, convert to TH then strip. If naive, assume already Thai."""
+        if dt.tzinfo is not None:
+            return dt.astimezone(TH_TZ).replace(tzinfo=None)
+        return dt
 
     @staticmethod
     async def _sync_appointment_notifications(
@@ -66,17 +68,22 @@ class AppointmentServiceSQL:
         to_add = []
 
         # สร้าง day_before เฉพาะเมื่อยังก่อน on_day (ไม่ duplicate)
+        # และข้ามถ้า pre-reminder ตกวันเดียวกับนัด (เพื่อไม่ส่งซ้ำ 2 ครั้งในวันเดียว)
+        appt_date_str = appt_date.strftime("%Y-%m-%d %H:%M")
         if day_before_at < on_day_at:
-            to_add.append(AppointmentNotification(
-                user_id=appointment.user_id,
-                pet_id=appointment.pet_id,
-                appointment_id=appointment.appointment_id,
-                title=f"Reminder: Appointment at {location} for {pet_name} (tomorrow)",
-                notification_at=day_before_at,
-                sending_status='not_sent',
-                status='pending',
-                sending_count=0,
-            ))
+            is_same_day = day_before_at.date() == appt_date.date()
+            if not is_same_day:
+                pre_title = f"[Pre-reminder] Appointment at {location} for {pet_name} is tomorrow ({appt_date_str})"
+                to_add.append(AppointmentNotification(
+                    user_id=appointment.user_id,
+                    pet_id=appointment.pet_id,
+                    appointment_id=appointment.appointment_id,
+                    title=pre_title,
+                    notification_at=day_before_at,
+                    sending_status='not_sent',
+                    status='pending',
+                    sending_count=0,
+                ))
 
         to_add.append(AppointmentNotification(
             user_id=appointment.user_id,
@@ -265,11 +272,15 @@ class AppointmentServiceSQL:
         # Update status
         appointment.status = 'Canceled'
         
-        # Cancel notification
+        # Cancel all pending notifications — update both status AND sending_status
+        # so the scheduler will not pick them up for sending.
         await session.execute(
             update(AppointmentNotification)
-            .where(AppointmentNotification.appointment_id == appointment_id)
-            .values(status='canceled')
+            .where(and_(
+                AppointmentNotification.appointment_id == appointment_id,
+                AppointmentNotification.sending_status == 'not_sent',
+            ))
+            .values(status='canceled', sending_status='failed')
         )
         
         await session.commit()

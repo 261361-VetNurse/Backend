@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models_sql.base import AsyncSessionLocal
 from app.models_sql.medicine_model import Medicine, MedicineNotification
-from app.models_sql.appointment_model import AppointmentNotification
+from app.models_sql.appointment_model import Appointment, AppointmentNotification
 from app.models_sql.pet_model import Pet
 from app.models_sql.user_model import User
 from app.services.medicine_service_sql import MedicineServiceSQL
@@ -108,14 +108,18 @@ class NotificationSchedulerSQL:
                 window_end = now + timedelta(minutes=15)
 
                 # --- Medicine Notifications ---
+                # Join Medicine to ensure the parent medicine is still active and not deleted.
                 med_result = await session.execute(
                     select(MedicineNotification, User)
                     .join(User, MedicineNotification.user_id == User.user_id)
+                    .join(Medicine, MedicineNotification.medicine_id == Medicine.medicine_id)
                     .where(and_(
                         MedicineNotification.sending_status == 'not_sent',
                         MedicineNotification.status == 'pending',
                         MedicineNotification.notification_at >= window_start,
                         MedicineNotification.notification_at <= window_end,
+                        Medicine.status == 'TAKE',
+                        Medicine.is_deleted == False,
                     ))
                 )
                 med_rows = med_result.all()
@@ -136,14 +140,18 @@ class NotificationSchedulerSQL:
                         notif.sending_count = (notif.sending_count or 0) + 1
 
                 # --- Appointment Notifications ---
+                # Join Appointment to ensure it's not canceled or deleted.
                 appt_result = await session.execute(
                     select(AppointmentNotification, User)
                     .join(User, AppointmentNotification.user_id == User.user_id)
+                    .join(Appointment, AppointmentNotification.appointment_id == Appointment.appointment_id)
                     .where(and_(
                         AppointmentNotification.sending_status == 'not_sent',
                         AppointmentNotification.status == 'pending',
                         AppointmentNotification.notification_at >= window_start,
                         AppointmentNotification.notification_at <= window_end,
+                        Appointment.status != 'Canceled',
+                        Appointment.is_deleted == False,
                     ))
                 )
                 appt_rows = appt_result.all()

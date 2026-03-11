@@ -4,7 +4,7 @@ API Endpoints for Medicine & Notification Management
 """
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,9 @@ from app.models_sql.medicine_model import Medicine, MedicineNotification
 from app.models_sql.pet_model import Pet
 from app.schemas.medicine import MedicineCreate, MedicineUpdate
 from app.schemas.response_models import NotificationListResponse, SuccessResponse, GroupedMedicineNotification, ReminderSlot
+
+# Thai timezone (UTC+7)
+TH_TZ = timezone(timedelta(hours=7))
 
 router = APIRouter(tags=["Medications"])
 
@@ -41,7 +44,7 @@ async def list_medications(
                     detail="Invalid date format. Use YYYY-MM-DD"
                 )
         else:
-            filter_date = datetime.now(timezone.utc).replace(tzinfo=None).date()
+            filter_date = datetime.now(TH_TZ).date()
         
         # Build query
         conditions = [

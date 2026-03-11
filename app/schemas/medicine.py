@@ -15,7 +15,7 @@ class MedicineBase(BaseModel):
     image_urls: Optional[List[str]] = Field(default=[], description="Medicine image URLs")
     dosage: Optional[str] = Field(None, description="Dosage information, e.g., '1 tablet'")
     frequency: str = Field(..., description="Frequency: 'daily', 'weekly', or comma-separated day numbers (0=Mon, 6=Sun)")
-    status: Optional[str] = Field(default="active", description="Status: active, stopped, completed")
+    status: Optional[str] = Field(default="TAKE", description="Status: TAKE=active, STOP=stopped")
     reminder_time: List[str] = Field(..., description="List of times in HH:MM format, e.g., ['08:00', '18:00']")
     start_date: datetime = Field(..., description="Start date of medication")
     end_date: datetime = Field(..., description="End date of medication")

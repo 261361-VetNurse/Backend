@@ -3,34 +3,60 @@ import jwt
 import time
 from app.config import settings
 
+# --- Token cache: reuse a single v3 token until it nears expiry ---
+_cached_token: str | None = None
+_cached_token_expires_at: float = 0
+
 
 async def get_admin_token():
+    """
+    Issue a stateless Channel Access Token **v3**.
+    - Endpoint: POST https://api.line.me/oauth2/v3/token
+    - No 30-token limit (stateless, ~15-min lifetime).
+    - Cached in memory so we don't call LINE on every push.
+    """
+    global _cached_token, _cached_token_expires_at
+
+    # Return cached token if still valid (with 2-min safety margin)
+    if _cached_token and time.time() < _cached_token_expires_at - 120:
+        return {"access_token": _cached_token}
+
     header = {"alg": "RS256", "typ": "JWT", "kid": settings.KEY_ID}
     payload = {
         "iss": settings.CHANNEL_ID,
         "sub": settings.CHANNEL_ID,
         "aud": "https://api.line.me/",
         "exp": int(time.time()) + 1800,
-        "token_exp": 2592000
+        # v3 does NOT use token_exp
     }
-    
+
     assertion = jwt.encode(
-        payload, 
-        settings.PRIVATE_KEY.encode('utf-8') if isinstance(settings.PRIVATE_KEY, str) else settings.PRIVATE_KEY, 
-        algorithm="RS256", 
-        headers=header
+        payload,
+        settings.PRIVATE_KEY.encode('utf-8') if isinstance(settings.PRIVATE_KEY, str) else settings.PRIVATE_KEY,
+        algorithm="RS256",
+        headers=header,
     )
-    
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "https://api.line.me/oauth2/v2.1/token",
+            "https://api.line.me/oauth2/v3/token",
             data={
                 "grant_type": "client_credentials",
                 "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-                "client_assertion": assertion
-            }
+                "client_assertion": assertion,
+            },
         )
-        return response.json()
+        data = response.json()
+
+        if "access_token" in data:
+            _cached_token = data["access_token"]
+            # v3 tokens typically live ~15 min (900s)
+            _cached_token_expires_at = time.time() + data.get("expires_in", 900)
+            print(f"[LINE] Obtained v3 admin token (expires_in={data.get('expires_in')}s)")
+        else:
+            print(f"[LINE] Failed to get v3 admin token: {data}")
+
+        return data
 
 
 async def exchange_user_token(code: str):
@@ -107,6 +133,9 @@ async def send_push_notification(user_id: str, topic: str, date: str):
     token_data = await get_admin_token() 
     access_token = token_data.get("access_token")
 
+    if not access_token:
+        raise RuntimeError(f"No LINE access token available: {token_data}")
+
     url = "https://api.line.me/v2/bot/message/push"
     headers = {
         "Content-Type": "application/json",
@@ -125,4 +154,7 @@ async def send_push_notification(user_id: str, topic: str, date: str):
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(url, headers=headers, json=payload)
+        if resp.status_code != 200:
+            body = resp.json()
+            raise RuntimeError(f"LINE push failed ({resp.status_code}): {body}")
         return resp.json()
